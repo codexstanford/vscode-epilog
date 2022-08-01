@@ -6,11 +6,11 @@ import * as Parser from 'web-tree-sitter';
 import * as ast from './ast';
 import * as util from './util';
 
-const graphHtmlRelativePath = path.join('resources', 'graph', 'index.html');
-const graphJsRelativePath = path.join('resources', 'graph', 'js', 'compiled', 'app.js');
+const graphHtmlRelativePath = path.join('node_modules', '@wohanley', 'logic-graph', 'resources', 'public', 'index.html');
+const graphJsRelativePath = path.join('node_modules', '@wohanley', 'logic-graph', 'resources', 'public', 'js', 'compiled', 'app.js');
 
 let parser: Parser;
-let yscriptLang: Parser.Language;
+let epilogLang: Parser.Language;
 
 export async function activate(context: vscode.ExtensionContext) {
 	// Initialize tree-sitter parser
@@ -22,18 +22,18 @@ export async function activate(context: vscode.ExtensionContext) {
 	// https://github.com/elm-tooling/elm-language-server/issues/692
 	// https://github.com/tree-sitter/node-tree-sitter/issues/111
 	// https://stackoverflow.com/questions/45062881/custom-node-version-to-run-vscode-extensions
-	yscriptLang = await Parser.Language.load(
-		path.join(context.extensionPath, "resources", "tree-sitter-yscript.wasm"));
-	parser.setLanguage(yscriptLang);
+	epilogLang = await Parser.Language.load(
+		path.join(context.extensionPath, 'node_modules', 'tree-sitter-epilog', 'tree-sitter-epilog.wasm'));
+	parser.setLanguage(epilogLang);
 
 	// Register subscriptions
 	context.subscriptions.push(
 		vscode.window.registerCustomEditorProvider(
-			'yscript.graph',
-			new YscriptGraphEditorProvider(context)));
+			'epilog.graph',
+			new EpilogGraphEditorProvider(context)));
 }
 
-class YscriptGraphEditorProvider implements vscode.CustomTextEditorProvider {
+class EpilogGraphEditorProvider implements vscode.CustomTextEditorProvider {
 	// Start with empty AST (better than null)
 	private ast: Parser.Tree = parser.parse("");
 

@@ -1,0 +1,14 @@
+{
+  "scopeName": "source.epilog",
+  "patterns": [
+    {
+      "include": "#variable"
+    }
+  ],
+  "repository": {
+    "variable": {
+      "name": "variable.other",
+      "match": "[A-Z][a-z\\d_\\.]*"
+    }
+  }
+}

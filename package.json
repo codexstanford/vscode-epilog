@@ -1,7 +1,7 @@
 {
-  "name": "yscript",
-  "displayName": "yscript Language Tools",
-  "description": "Tools for writing and working with yscript programs.",
+  "name": "vscode-epilog",
+  "displayName": "Epilog Language Tools",
+  "description": "Tools for writing and working with Epilog programs.",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.68.0"
@@ -10,30 +10,26 @@
     "Programming Languages"
   ],
   "activationEvents": [
-    "onCustomEditor:yscript.graph"
+    "onCustomEditor:epilog.graph"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "languages": [
       {
-        "id": "yscript",
+        "id": "epilog",
         "extensions": [
-          ".ys",
-          ".yscript"
+          ".epilog"
         ],
         "configuration": "./language-configuration.json"
       }
     ],
     "customEditors": [
       {
-        "viewType": "yscript.graph",
-        "displayName": "yscript Graph",
+        "viewType": "epilog.graph",
+        "displayName": "Epilog Graph",
         "selector": [
           {
-            "filenamePattern": "*.ys"
-          },
-          {
-            "filenamePattern": "*.yscript"
+            "filenamePattern": "*.epilog"
           }
         ],
         "priority": "option"
@@ -41,18 +37,16 @@
     ],
     "grammars": [
       {
-        "language": "yscript",
-        "scopeName": "source.yscript",
-        "path": "./syntax/yscript.tmGrammar.json"
+        "language": "epilog",
+        "scopeName": "source.epilog",
+        "path": "./syntax/epilog.tmGrammar.json"
       }
     ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "build-tree-sitter": "tree-sitter build-wasm node_modules/tree-sitter-yscript && mv tree-sitter-yscript.wasm resources",
-    "compile:ts": "tsc -p ./",
-    "compile:yaml": "npx js-yaml ./syntax/yscript.tmGrammar.yaml > ./syntax/yscript.tmGrammar.json",
-    "compile": "npm run compile:ts && npm run compile:yaml",
+    "build-tree-sitter": "tree-sitter build-wasm node_modules/tree-sitter-epilog && mv tree-sitter-epilog.wasm resources",
+    "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
@@ -68,9 +62,8 @@
     "@vscode/test-electron": "^2.1.5",
     "eslint": "^8.18.0",
     "glob": "^8.0.3",
-    "js-yaml": "^4.1.0",
     "mocha": "^10.0.0",
-    "tree-sitter-yscript": "file:../../tree-sitter-yscript",
+    "tree-sitter-epilog": "file:../../tree-sitter-epilog",
     "typescript": "^4.7.4"
   },
   "dependencies": {
