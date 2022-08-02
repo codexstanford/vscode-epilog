@@ -13,3 +13,10 @@ export function debounce(f: Function, wait: number, immediate = false) {
         if (callNow) f.apply(context, args);
     };
 };
+
+export function pick(o: any, keys: string[]) {
+    return keys.filter(k => k in o).reduce((out: any, k) => {
+        out[k] = o[k];
+        return out;
+    }, {});
+}

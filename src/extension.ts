@@ -47,7 +47,7 @@ class EpilogGraphEditorProvider implements vscode.CustomTextEditorProvider {
 			path.join(this.context.extensionPath, graphHtmlRelativePath),
 			{ encoding: 'utf-8' });
 		const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
-		const positions = workspaceFolder ? _readPositions(workspaceFolder) : Promise.resolve({});
+		const positions = _readPositions(workspaceFolder);
 
 		// Initialize AST
 		this.ast = parser.parse(document.getText());
@@ -75,6 +75,10 @@ class EpilogGraphEditorProvider implements vscode.CustomTextEditorProvider {
 
 		const graphChangeSub = webviewPanel.webview.onDidReceiveMessage(message => {
 			switch (message.type) {
+				case 'appReady':
+					_initGraphForEpilog(webviewPanel.webview);
+					_updateGraphFromParse(webviewPanel.webview, this.ast);
+					break;
 				case 'positionsEdited':
 					const folder = vscode.workspace.getWorkspaceFolder(document.uri);
 					// If no workspace, nowhere to store positions.
@@ -137,7 +141,7 @@ class EpilogGraphEditorProvider implements vscode.CustomTextEditorProvider {
 
 				_setGraphPositions(webviewPanel.webview, positionsResolved);
 
-				_updateGraphFromParse(webviewPanel.webview, this.ast);
+				// will update with AST after appReady message received
 			});
 	}
 
@@ -150,86 +154,6 @@ class EpilogGraphEditorProvider implements vscode.CustomTextEditorProvider {
 	}
 }
 
-function _ensureGetIn(root: any, path: string[]): any {
-	if (!path.length) return root;
-
-	const ensured = root[path[0]] || {};
-	root[path[0]] = ensured;
-
-	return _ensureGetIn(ensured, path.slice(1));
-}
-
-function _createFact() {
-	// Yes, these are two different types, see `astToGraphModel` for details
-	return {
-		determiners: [],
-		requirers: {}
-	};
-}
-
-function _findLineage(node: Parser.SyntaxNode): Parser.SyntaxNode[] {
-	const lineage = [];
-
-	let currentNode: Parser.SyntaxNode | null = node;
-	while (currentNode !== null) {
-		lineage.unshift(currentNode);
-		currentNode = currentNode.parent;
-	}
-
-	// Only some ancestors are interesting, so filter the list down to those
-	return lineage.filter(n => {
-		return (
-			n.id === node.id ||
-			n.type === 'and_expr' ||
-			n.type === 'or_expr' ||
-			n.type === 'only_if' ||
-			n.type === 'rule_definition'
-		);
-	});
-}
-
-function _lineageToPath(lineage: Parser.SyntaxNode[]): any[] {
-	const path = [];
-	for (let i = 0; i < lineage.length; i++) {
-		const currentNode = lineage[i];
-		switch (currentNode.type) {
-			case 'rule_definition': {
-				path.push(currentNode.childForFieldName('name')?.text);
-				break;
-			}
-			case 'only_if': {
-				path.push(currentNode.parent?.children.findIndex(child => child.id === currentNode.id));
-				break;
-			}
-			case 'and_expr':
-			case 'or_expr':
-			case 'fact_expr': {
-				const parentNode = lineage[i - 1];
-				switch (parentNode.type) {
-					case 'only_if': {
-						path.push('src_expr');
-						break;
-					}
-					case 'and_expr':
-					case 'or_expr': {
-						const [left, , right] = parentNode.children;
-						if (left.id === currentNode.id) {
-							path.push('left');
-						} else if (right.id === currentNode.id) {
-							path.push('right');
-						} else {
-							throw new Error("Expression didn't match either operand of parent bool_expr");
-						}
-						break;
-					}
-				}
-			}
-		}
-	}
-
-	return path;
-}
-
 function _gotoPreorderSucc(cursor: Parser.TreeCursor): boolean {
 	if (cursor.gotoFirstChild()) return true;
 	while (!cursor.gotoNextSibling()) {
@@ -238,102 +162,30 @@ function _gotoPreorderSucc(cursor: Parser.TreeCursor): boolean {
 	return true;
 }
 
-function _astToGraphModel(cursor: Parser.TreeCursor, db: any = { rules: {}, facts: {} }) {
+function _astToGraphModel(cursor: Parser.TreeCursor) {
+	const db: any = { rules: {} };
+
 	do {
 		const currentNode = cursor.currentNode();
 
 		switch (currentNode.type) {
-			case 'rule_definition': {
-				const nameNode = currentNode.childForFieldName('name');
-				if (!nameNode) throw new Error("Found rule with no name");
-				const ruleName = nameNode.text;
-				db.rules[ruleName] = db.rules[ruleName] || {
-					statements: []
-				};
-				db.rules[ruleName].name = { range: [nameNode.startPosition, nameNode.endPosition] };
-				db.rules[ruleName].range = [currentNode.startPosition, currentNode.endPosition];
-				break;
-			}
-			case 'only_if': {
-				const destFactNode = currentNode.childForFieldName('dest_fact');
-				if (!destFactNode) throw new Error("Found ONLY IF with no dest_fact");
-				const descriptor = destFactNode.text;
-				db.facts[descriptor] = db.facts[descriptor] || _createFact();
-				db.facts[descriptor].determiners.push({
-					// Take the rule and statement index as a path, rest is irrelevant
-					path: _lineageToPath(_findLineage(destFactNode)).slice(0, 2),
-					position: [currentNode.startPosition, currentNode.endPosition]
+			case 'rule': {
+				const headNode = currentNode.childForFieldName('head');
+				if (!headNode) throw new Error("Impossible AST: Rule with no head");
+				const head = new ast.Literal(headNode);
+
+				const body = currentNode.childForFieldName('body')?.namedChildren.map(bodyLiteral => {
+					return new ast.Literal(bodyLiteral);
 				});
-
-				const lineage = _findLineage(currentNode);
-				const ancestorRule = lineage.find(
-					node => node.type === 'rule_definition'
-				);
-
-				const ancestorRuleName = ancestorRule?.childForFieldName('name')?.text;
-				if (!ancestorRuleName) throw new Error("Found rule with no name");
-
-				db.rules[ancestorRuleName].statements.push({
-					type: 'only_if',
-					dest_fact: {
-						descriptor,
-						range: [destFactNode.startPosition, destFactNode.endPosition]
-					}
-				});
-
-				break;
-			}
-			case 'and_expr':
-			case 'or_expr': {
-				const [ruleName, statementIdx, ...exprPath] = _lineageToPath(_findLineage(currentNode));
-				const ancestorStatement = db.rules[ruleName].statements[statementIdx];
-
-				if (!exprPath.length) throw new Error("Path to expression should contain at least src_expr");
-
-				_ensureGetIn(ancestorStatement, exprPath).type = currentNode.type;
-
-				break;
-			}
-			case 'fact_expr': {
-				const descriptor = currentNode.text;
-				const lineage = _findLineage(currentNode);
-				const [ruleName, statementIdx, ...exprPath] = _lineageToPath(lineage);
-
-				// We're going to build up a structure like e.g.
-				//   {
-				//     "rule a": { 0: {}, 1: {} },
-				//     "rule b": { 0: {} }
-				//   }
-				// We can flatten this into a list of [rule, statementIdx] paths once
-				// we've gone through the whole AST.
-				db.facts[descriptor] = db.facts[descriptor] || _createFact();
-				_ensureGetIn(db.facts[descriptor].requirers, [ruleName, statementIdx]);
-
-				const ancestorStatement = db.rules[ruleName].statements[statementIdx];
-				const factNode = _ensureGetIn(ancestorStatement, exprPath);
-				factNode.type = 'fact_expr';
-				factNode.descriptor = descriptor;
-				factNode.range = [currentNode.startPosition, currentNode.endPosition];
+				
+				const headStr = head.toCode();
+				db.rules[headStr] = db.rules[headStr] || [];
+				db.rules[headStr].push({ head, body });
 
 				break;
 			}
 		}
 	} while (_gotoPreorderSucc(cursor));
-
-	// Flatten fact requirer hierarchies
-	for (const factName in db.facts) {
-		const fact = db.facts[factName];
-		const flatRequirers = [];
-
-		for (const ruleName in fact.requirers) {
-			const rule = fact.requirers[ruleName];
-			for (const statementIdx in rule) {
-				flatRequirers.push({ path: [ruleName, parseInt(statementIdx)] });
-			}
-		}
-
-		fact.requirers = flatRequirers;
-	}
 
 	return db;
 }
@@ -355,16 +207,23 @@ function _assembleGraphHtml(
 	return htmlString.replace("/js/compiled/app.js", webview.asWebviewUri(jsUri).toString());
 }
 
+function _initGraphForEpilog(webview: vscode.Webview): void {
+	webview.postMessage({
+		type: 'lide.initForLanguage',
+		language: 'epilog'
+	 });
+}
+
 function _updateGraphFromParse(webview: vscode.Webview, ast: Parser.Tree): void {
 	webview.postMessage({
-		'type': 'yscript.graph.codeUpdated',
+		'type': 'lide.codeUpdated.epilog',
 		'model': _astToGraphModel(ast.rootNode.walk())
 	});
 }
 
 function _setGraphPositions(webview: vscode.Webview, positions: any) {
 	webview.postMessage({
-		'type': 'yscript.graph.positionsRead',
+		'type': 'lide.positionsRead',
 		'positions': positions
 	});
 }
@@ -373,11 +232,15 @@ function _getPositionsFilePath(folder: vscode.WorkspaceFolder): string {
 	return path.join(folder.uri.fsPath, '.lide', 'positions.json');
 }
 
-function _readPositions(folder: vscode.WorkspaceFolder) {
+function _readPositions(folder: vscode.WorkspaceFolder | undefined) {
+	const empty = { rule: {}, fact: {} };
+
+	if (!folder) return Promise.resolve(empty);
+
 	return fs.mkdir(path.dirname(_getPositionsFilePath(folder)), { recursive: true })
 		.then(() => fs.readFile(_getPositionsFilePath(folder), { encoding: 'utf-8' }))
 		.then(JSON.parse)
-		.catch(() => { return {}; });
+		.catch(() => empty);
 }
 
 function _writePositions(folder: vscode.WorkspaceFolder, positions: any) {

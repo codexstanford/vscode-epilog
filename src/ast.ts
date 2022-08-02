@@ -1,6 +1,28 @@
 import * as vscode from 'vscode';
 import * as Parser from 'web-tree-sitter';
 
+import * as util from './util';
+
+export class Literal {
+    args: { text: string }[];
+    predicate: { text: string; };
+
+    constructor(node: Parser.SyntaxNode) {
+        const predicateNode = node.childForFieldName('predicate');
+        if (!predicateNode) throw new Error("Impossible AST: Literal without predicate");
+        this.predicate = util.pick(predicateNode, ['text', 'startPosition', 'endPosition']);
+
+        const argsNode = node.childForFieldName('args');
+        this.args = (argsNode ? argsNode.namedChildren : []).map(argNode => {
+            return util.pick(argNode, ['text', 'startPosition', 'endPosition']);
+        });
+    }
+
+    public toCode(): string {
+        return this.predicate.text + '(' + this.args.map(arg => arg.text).join(',') + ')';
+    }
+}
+
 /** Get a Tree-sitter Edit corresponding to a replacement by `change.text` at
  * `change.range` within `text`. */
 export function getEditFromChange(
