@@ -6,8 +6,11 @@ import * as util from './util';
 export class Literal {
     args: { text: string }[];
     predicate: { text: string; };
+    negated = false;
 
     constructor(node: Parser.SyntaxNode) {
+        this.negated = node.firstChild?.type === 'op_negate';
+
         const predicateNode = node.childForFieldName('predicate');
         if (!predicateNode) throw new Error("Impossible AST: Literal without predicate");
         this.predicate = util.pick(predicateNode, ['text', 'startPosition', 'endPosition']);
@@ -19,8 +22,35 @@ export class Literal {
     }
 
     public toCode(): string {
-        return this.predicate.text + '(' + this.args.map(arg => arg.text).join(',') + ')';
+        return (this.negated ? '~' : '') + this.predicate.text + '(' + this.args.map(arg => arg.text).join(',') + ')';
     }
+}
+
+export function findContainingNode(root: Parser.SyntaxNode, point: Parser.Point): Parser.SyntaxNode | null {
+    return findContainingNodeWithCursor(root.walk(), point);
+}
+
+function findContainingNodeWithCursor(cursor: Parser.TreeCursor, point: Parser.Point): Parser.SyntaxNode | null {
+    const current = cursor.currentNode();
+
+    // If `point` is outside the range of this node, it can't be inside any
+    // of its descendants either. Try a sibling.
+    if (comparePoints(current.startPosition, point) > 0 ||
+        comparePoints(current.endPosition, point)   < 0) {
+        if (cursor.gotoNextSibling()) {
+            return findContainingNodeWithCursor(cursor, point);
+        } else {
+            return null;
+        }
+    }
+
+    // `current` is a container for `point`, but maybe we can find a more
+    // specific descendant.
+    if (cursor.gotoFirstChild()) {
+        return findContainingNodeWithCursor(cursor, point) || current;
+    }
+
+    return current;
 }
 
 /** Get a Tree-sitter Edit corresponding to a replacement by `change.text` at
@@ -41,7 +71,7 @@ export function getEditFromChange(
         startPosition: toTSPoint(change.range.start),
         oldEndPosition: toTSPoint(change.range.end),
         newEndPosition: toTSPoint(
-            addPositions(change.range.start, textToPosition(change.text)),
+            util.addPositions(change.range.start, textToPosition(change.text)),
         ),
     };
 }
@@ -52,6 +82,14 @@ export function toVSPosition(tsPoint: Parser.Point) {
 
 export function toVSRange(tsRange: [Parser.Point, Parser.Point]) {
     return new vscode.Range(toVSPosition(tsRange[0]), toVSPosition(tsRange[1]));
+}
+
+function comparePoints(a: Parser.Point, b: Parser.Point): number {
+    if (a.row > b.row) return 1;
+    if (a.row < b.row) return -1;
+    if (a.column > b.column) return 1;
+    if (a.column < b.column) return -1;
+    return 0;
 }
 
 function getIndicesFromRange(
@@ -87,12 +125,5 @@ function textToPosition(text: string): vscode.Position {
     return new vscode.Position(
         lines.length - 1,
         lines[lines.length - 1].length
-    );
-}
-
-function addPositions(pos1: vscode.Position, pos2: vscode.Position): vscode.Position {
-    return new vscode.Position(
-        pos1.line + pos2.line,
-        pos1.character + pos2.character
     );
 }

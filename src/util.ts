@@ -1,3 +1,5 @@
+import * as vscode from 'vscode';
+
 /** Debounce lifted from Underscore */
 export function debounce(f: Function, wait: number, immediate = false) {
     let timeout: any;
@@ -19,4 +21,11 @@ export function pick(o: any, keys: string[]) {
         out[k] = o[k];
         return out;
     }, {});
+}
+
+export function addPositions(pos1: vscode.Position, pos2: vscode.Position): vscode.Position {
+    return new vscode.Position(
+        pos1.line + pos2.line,
+        pos1.character + pos2.character
+    );
 }

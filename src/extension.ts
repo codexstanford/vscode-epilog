@@ -86,19 +86,27 @@ class EpilogGraphEditorProvider implements vscode.CustomTextEditorProvider {
 					if (!folder) return;
 					_writePositions(folder, message.positions);
 					break;
-				case 'editSource': {
-					const editor = vscode.window.visibleTextEditors.find(ed => ed.document === document);
+				case 'negateLiteral': {
+					const predicateNode = ast.findContainingNode(this.ast.rootNode, message.startPosition);
+					const literalNode = predicateNode?.parent;
+					if (!literalNode) throw new Error("Parent literal not found for negate");
 
-					if (editor) {
-						// Edit text. This will be picked up by our text document change listener,
-						// which will update our AST and then our graph.
-						editor.edit(eb => {
-							eb.replace(
-								ast.toVSRange(message.range),
-								message.text
-							);
-						});
+					const startPosition = ast.toVSPosition(message.startPosition);
+					const edit = new vscode.WorkspaceEdit();
+					if (new ast.Literal(literalNode).negated) {
+						edit.delete(
+							document.uri,
+							new vscode.Range(
+								new vscode.Position(startPosition.line, startPosition.character - 1),
+								startPosition)
+						);
+					} else {
+						edit.insert(
+							document.uri,
+							ast.toVSPosition(message.startPosition),
+							'~');
 					}
+					vscode.workspace.applyEdit(edit);
 					break;
 				}
 				case 'selectRange': {
