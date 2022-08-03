@@ -4,12 +4,14 @@ import * as Parser from 'web-tree-sitter';
 import * as util from './util';
 
 export class Literal {
-    args: { text: string }[];
+    args: Parser.SyntaxNode[];
     predicate: { text: string; };
-    negated = false;
+    nodeId: number;
+    negative: boolean;
 
     constructor(node: Parser.SyntaxNode) {
-        this.negated = node.firstChild?.type === 'op_negate';
+        this.nodeId = node.id;
+        this.negative = node.firstChild?.type === 'op_negate';
 
         const predicateNode = node.childForFieldName('predicate');
         if (!predicateNode) throw new Error("Impossible AST: Literal without predicate");
@@ -17,13 +19,30 @@ export class Literal {
 
         const argsNode = node.childForFieldName('args');
         this.args = (argsNode ? argsNode.namedChildren : []).map(argNode => {
-            return util.pick(argNode, ['text', 'startPosition', 'endPosition']);
+            return util.pick(argNode, ['type', 'text', 'startPosition', 'endPosition']);
         });
     }
 
     public toCode(): string {
-        return (this.negated ? '~' : '') + this.predicate.text + '(' + this.args.map(arg => arg.text).join(',') + ')';
+        return (this.negative ? '~' : '') + this.predicate.text + '(' + this.args.map(arg => arg.text).join(',') + ')';
     }
+}
+
+/** Literals `a` and `b` match if they have the same predicate, same arity, and
+    any ground arguments are the same. */
+export function matches(a: Literal, b: Literal): Boolean {
+    if (a.predicate.text !== b.predicate.text) return false;
+    if (a.args.length !== b.args.length) return false;
+
+    for (let i = 0; i < a.args.length; i++) {
+        if (a.args[i].type !== 'variable' &&
+            b.args[i].type !== 'variable' &&
+            a.args[i].text !== b.args[i].text) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 export function findContainingNode(root: Parser.SyntaxNode, point: Parser.Point): Parser.SyntaxNode | null {

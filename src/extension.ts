@@ -93,7 +93,7 @@ class EpilogGraphEditorProvider implements vscode.CustomTextEditorProvider {
 
 					const startPosition = ast.toVSPosition(message.startPosition);
 					const edit = new vscode.WorkspaceEdit();
-					if (new ast.Literal(literalNode).negated) {
+					if (new ast.Literal(literalNode).negative) {
 						edit.delete(
 							document.uri,
 							new vscode.Range(
@@ -170,30 +170,58 @@ function _gotoPreorderSucc(cursor: Parser.TreeCursor): boolean {
 	return true;
 }
 
-function _astToGraphModel(cursor: Parser.TreeCursor) {
-	const db: any = { rules: {} };
+function astToGraphModel(tree: Parser.Tree) {
+	const db: any = { rules: {}, matches: [] };
+	const ruleHeads: ast.Literal[] = [];
 
-	do {
-		const currentNode = cursor.currentNode();
+	// Create all the rules first
+	epilogLang.query(`
+		(rule
+		  head: (literal) @head)
+	`).captures(tree.rootNode).forEach(headCapture => {
+		const head = new ast.Literal(headCapture.node);
+		ruleHeads.push(head);
+		const headCode = head.toCode();
+		db.rules[headCode] = db.rules[headCode] || [];
+		db.rules[headCode].push({
+			head,
+			body: (headCapture.node.nextNamedSibling?.namedChildren || []).map(bodyLiteral => {
+				return new ast.Literal(bodyLiteral);
+			})
+		});
+	});
 
-		switch (currentNode.type) {
-			case 'rule': {
-				const headNode = currentNode.childForFieldName('head');
-				if (!headNode) throw new Error("Impossible AST: Rule with no head");
-				const head = new ast.Literal(headNode);
+	epilogLang.query(`
+		(rule
+		  head: (literal) @head
+		  body: (rule_body) @body)
+	`).matches(tree.rootNode).forEach(match => {
+		const headCapture = match.captures.find(c => c.name === 'head');
+		const bodyCapture = match.captures.find(c => c.name === 'body');
 
-				const body = currentNode.childForFieldName('body')?.namedChildren.map(bodyLiteral => {
-					return new ast.Literal(bodyLiteral);
+		if (!headCapture || !bodyCapture) throw new Error("Impossible AST");
+
+		const head = new ast.Literal(headCapture.node);
+
+		bodyCapture.node.namedChildren.forEach((bodyLiteral, subgoalIdx) => {
+			const literal = new ast.Literal(bodyLiteral);
+
+			ruleHeads.filter(head => {
+				return ast.matches(head, literal);
+			}).forEach(matchingHead => {
+				const matchingHeadCode = matchingHead.toCode();
+				Object.entries(db.rules[matchingHeadCode]).forEach((_, matchingBodyIdx) => {
+					const bodyIdx = ruleHeads
+						.filter(l => l.toCode() === matchingHeadCode)
+						.findIndex(l => l.nodeId === matchingHead.nodeId);
+					db.matches.push({
+						subgoal: [head.toCode(), bodyIdx, subgoalIdx],
+						rule: [matchingHeadCode, matchingBodyIdx]
+					});
 				});
-				
-				const headStr = head.toCode();
-				db.rules[headStr] = db.rules[headStr] || [];
-				db.rules[headStr].push({ head, body });
-
-				break;
-			}
-		}
-	} while (_gotoPreorderSucc(cursor));
+			});
+		});
+	});
 
 	return db;
 }
@@ -225,7 +253,7 @@ function _initGraphForEpilog(webview: vscode.Webview): void {
 function _updateGraphFromParse(webview: vscode.Webview, ast: Parser.Tree): void {
 	webview.postMessage({
 		'type': 'lide.codeUpdated.epilog',
-		'model': _astToGraphModel(ast.rootNode.walk())
+		'model': astToGraphModel(ast)
 	});
 }
 
