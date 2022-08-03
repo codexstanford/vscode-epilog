@@ -6,29 +6,44 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "Run Extension",
+			"name": "Launch Client",
 			"type": "extensionHost",
 			"request": "launch",
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}"
 			],
 			"outFiles": [
-				"${workspaceFolder}/out/**/*.js"
+				"${workspaceFolder}/client/out/**/*.js"
 			],
-			"preLaunchTask": "${defaultBuildTask}"
+			"preLaunchTask": {
+				"type": "npm",
+				"script": "watch"
+			}
 		},
 		{
-			"name": "Extension Tests",
+			"type": "node",
+			"request": "attach",
+			"name": "Attach to Server",
+			"port": 6009,
+			"restart": true,
+			"outFiles": ["${workspaceRoot}/server/out/**/*.js"]
+		},
+		{
+			"name": "E2E Test",
 			"type": "extensionHost",
 			"request": "launch",
 			"args": [
-				"--extensionDevelopmentPath=${workspaceFolder}",
-				"--extensionTestsPath=${workspaceFolder}/out/test/suite/index"
+				"--extensionDevelopmentPath=${workspaceRoot}",
+				"--extensionTestsPath=${workspaceRoot}/client/out/test/index",
+				"${workspaceRoot}/client/testFixture"
 			],
-			"outFiles": [
-				"${workspaceFolder}/out/test/**/*.js"
-			],
-			"preLaunchTask": "${defaultBuildTask}"
+			"outFiles": ["${workspaceRoot}/client/out/test/**/*.js"]
+		}
+	],
+	"compounds": [
+		{
+			"name": "Client + Server",
+			"configurations": ["Launch Client", "Attach to Server"]
 		}
 	]
 }

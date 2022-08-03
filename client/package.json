@@ -1,0 +1,15 @@
+{
+	"name": "epilog-ls-client",
+	"description": "Epilog LSP client",
+	"version": "0.1.0",
+	"engines": {
+		"vscode": "^1.68.0"
+	},
+	"dependencies": {
+		"vscode-languageclient": "^8.0.2"
+	},
+	"devDependencies": {
+		"@types/vscode": "^1.69.0",
+		"@vscode/test-electron": "^2.1.5"
+	}
+}
