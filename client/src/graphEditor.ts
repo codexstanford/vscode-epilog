@@ -58,19 +58,19 @@ export class EpilogGraphEditorProvider implements vscode.CustomTextEditorProvide
 }
 
 class GraphEditor {
-    private ast: Parser.Tree;
+    private tree: Parser.Tree;
 
     constructor(
         private readonly document: vscode.TextDocument,
         private readonly webviewPanel: vscode.WebviewPanel,
         private readonly parser: Parser) {
         // Initialize AST
-        this.ast = this.parser.parse(document.getText());
+        this.tree = this.parser.parse(document.getText());
 
         // Listen for text document changes
 
         const _rerenderGraph = util.debounce(() => {
-            updateGraphFromParse(webviewPanel.webview, this.parser, this.ast);
+            updateGraphFromParse(webviewPanel.webview, this.parser, this.tree);
         }, 100);
 
         const textChangeSub = vscode.workspace.onDidChangeTextDocument(
@@ -78,7 +78,7 @@ class GraphEditor {
                 if (evt.document.uri.toString() !== document.uri.toString()) return;
 
                 for (const change of evt.contentChanges) {
-                    ast.updateAst(this.parser, this.ast, change, evt.document.getText());
+                    this.tree = ast.updateAst(this.parser, this.tree, change, evt.document.getText());
                 }
 
                 _rerenderGraph();
@@ -99,7 +99,7 @@ class GraphEditor {
                 initGraphForEpilog(this.webviewPanel.webview);
                 readPositions(vscode.workspace.getWorkspaceFolder(this.document.uri)).then(positions => {
                     setGraphPositions(this.webviewPanel.webview, positions);
-                    updateGraphFromParse(this.webviewPanel.webview, this.parser, this.ast);
+                    updateGraphFromParse(this.webviewPanel.webview, this.parser, this.tree);
                 });
                 break;
             case 'positionsEdited':
@@ -110,7 +110,7 @@ class GraphEditor {
                 writePositions(folder, message.positions);
                 break;
             case 'negateLiteral': {
-                const predicateNode = ast.findContainingNode(this.ast.rootNode, message.startPosition);
+                const predicateNode = ast.findContainingNode(this.tree.rootNode, message.startPosition);
                 const literalNode = predicateNode?.parent;
                 if (!literalNode) throw new Error("Parent literal not found for negate");
 
