@@ -38,10 +38,8 @@ export class EpilogGraphEditorProvider implements vscode.CustomTextEditorProvide
             path.join(this.context.extensionPath, graphHtmlRelativePath),
             { encoding: 'utf-8' });
 
-        const positions = readPositions(vscode.workspace.getWorkspaceFolder(document.uri));
-
-        Promise.all([parserLoad, rawHtml, positions])
-            .then(([resolvedParser, rawHtmlResolved, positionsResolved]) => {
+        Promise.all([parserLoad, rawHtml])
+            .then(([resolvedParser, rawHtmlResolved]) => {
                 // Cache the loaded parser, or a no-op if we already had it
                 preloadedParser = resolvedParser;
 
@@ -51,8 +49,6 @@ export class EpilogGraphEditorProvider implements vscode.CustomTextEditorProvide
                     rawHtmlResolved,
                     webviewPanel.webview,
                     this.context);
-
-                setGraphPositions(webviewPanel.webview, positionsResolved);
 
                 new GraphEditor(document, webviewPanel, resolvedParser);
 
@@ -101,7 +97,10 @@ class GraphEditor {
                 // Web app has finished setting up and is ready to receive messages.
                 // Set the target language to Epilog and send the initial program state.
                 initGraphForEpilog(this.webviewPanel.webview);
-                updateGraphFromParse(this.webviewPanel.webview, this.parser, this.ast);
+                readPositions(vscode.workspace.getWorkspaceFolder(this.document.uri)).then(positions => {
+                    setGraphPositions(this.webviewPanel.webview, positions);
+                    updateGraphFromParse(this.webviewPanel.webview, this.parser, this.ast);
+                });
                 break;
             case 'positionsEdited':
                 const folder = vscode.workspace.getWorkspaceFolder(this.document.uri);
