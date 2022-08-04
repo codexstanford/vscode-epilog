@@ -1,14 +1,4 @@
-import {
-    Diagnostic,
-    DiagnosticSeverity,
-    CompletionItem,
-    CompletionItemKind,
-    TextDocumentPositionParams,
-    TextDocumentSyncKind,
-    InitializeResult
-} from 'vscode-languageserver/node';
-
-import * as vsls from 'vscode-languageserver/node';
+import * as lsp from 'vscode-languageserver/node';
 import * as lstext from 'vscode-languageserver-textdocument';
 import * as Parser from 'web-tree-sitter';
 import * as path from 'path';
@@ -17,12 +7,12 @@ import * as ast from '../../util/out/ast';
 
 let parser: Parser;
 
-const connection = vsls.createConnection();
+const connection = lsp.createConnection();
 
-const documents: vsls.TextDocuments<lstext.TextDocument> = new vsls.TextDocuments(lstext.TextDocument);
+const documents: lsp.TextDocuments<lstext.TextDocument> = new lsp.TextDocuments(lstext.TextDocument);
 const forest: Map<string, Parser.Tree> = new Map();
 
-connection.onInitialize(async (_params) => {
+connection.onInitialize(async () => {
     // Don't die on unhandled promise rejections
     process.on("unhandledRejection", (reason, p) => {
         connection.console.error(
@@ -36,9 +26,9 @@ connection.onInitialize(async (_params) => {
             path.join(__dirname, '..', '..', 'node_modules', 'tree-sitter-epilog', 'tree-sitter-epilog.wasm'))
     );
 
-    const result: InitializeResult = {
+    const result: lsp.InitializeResult = {
         capabilities: {
-            textDocumentSync: TextDocumentSyncKind.Incremental
+            textDocumentSync: lsp.TextDocumentSyncKind.Incremental
         }
     };
 
@@ -59,7 +49,7 @@ documents.onDidClose(e => {
 });
 
 async function diagnoseDocument(textDocument: lstext.TextDocument, tree: Parser.Tree): Promise<void> {
-    const diagnostics: Diagnostic[] = [];
+    const diagnostics: lsp.Diagnostic[] = [];
 
     parser.getLanguage().query(`
         (rule
@@ -126,7 +116,7 @@ async function diagnoseDocument(textDocument: lstext.TextDocument, tree: Parser.
                         start: ast.toLspPosition(node.startPosition),
                         end: ast.toLspPosition(node.endPosition)
                     },
-                    severity: DiagnosticSeverity.Warning
+                    severity: lsp.DiagnosticSeverity.Warning
                 });
             });
         });
