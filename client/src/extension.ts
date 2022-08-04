@@ -26,6 +26,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 	};
 
+	// XXX Starting the client also starts the server, according to MS's LSP
+	// example. Is the same true of stopping it? It does seem like the process
+	// goes away after client.stop(), but is that reliable?
 	client = new lc.LanguageClient('epilog', serverOptions, clientOptions);
 	client.start();
 
