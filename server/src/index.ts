@@ -13,8 +13,7 @@ import * as lstext from 'vscode-languageserver-textdocument';
 import * as Parser from 'web-tree-sitter';
 import * as path from 'path';
 
-import * as ast from '@util/ast';
-import * as vsc from 'vscode';
+import * as ast from '../../util/out/ast';
 
 let parser: Parser;
 
@@ -34,7 +33,7 @@ connection.onInitialize(async (_params) => {
     parser = await ast.loadParser(
         path.relative(
             process.cwd(),
-            path.join(__dirname, 'node_modules', 'tree-sitter-epilog', 'tree-sitter-epilog.wasm'))
+            path.join(__dirname, '..', '..', 'node_modules', 'tree-sitter-epilog', 'tree-sitter-epilog.wasm'))
     );
 
     const result: InitializeResult = {
@@ -63,13 +62,14 @@ async function diagnoseDocument(textDocument: lstext.TextDocument, tree: Parser.
     const diagnostics: Diagnostic[] = [];
 
     parser.getLanguage().query(`
-        (rule) @rule
+        (rule
+          head: (literal) @head)
     `).captures(tree.rootNode).forEach(cap => {
         diagnostics.push({
             message: "Rule head",
             range: {
-                start: ast.toVSPosition(cap.node.startPosition),
-                end: ast.toVSPosition(cap.node.endPosition)
+                start: ast.toLspPosition(cap.node.startPosition),
+                end: ast.toLspPosition(cap.node.endPosition)
             },
             severity: DiagnosticSeverity.Information
         });

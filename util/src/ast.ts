@@ -1,4 +1,4 @@
-import * as vscode from 'vscode';
+import * as lsp from 'vscode-languageserver/node';
 import * as Parser from 'web-tree-sitter';
 
 import * as util from '.';
@@ -50,7 +50,7 @@ export async function loadParser(wasmPath: string): Promise<Parser> {
 export function updateAst(
     parser: Parser,
     ast: Parser.Tree,
-    change: { range: vscode.Range, text: string },
+    change: { range: lsp.Range, text: string },
     fullText: string): Parser.Tree {
     ast.edit(getEditFromChange(change, ast.rootNode.text));
     return parser.parse(fullText, ast);
@@ -105,7 +105,7 @@ function findContainingNodeWithCursor(cursor: Parser.TreeCursor, point: Parser.P
 /** Get a Tree-sitter Edit corresponding to a replacement by `change.text` at
  * `change.range` within `text`. */
 export function getEditFromChange(
-    change: { text: string; range: vscode.Range },
+    change: { text: string; range: lsp.Range },
     text: string,
 ): Parser.Edit {
     const [startIndex, endIndex] = getIndicesFromRange(
@@ -125,12 +125,12 @@ export function getEditFromChange(
     };
 }
 
-export function toVSPosition(tsPoint: Parser.Point) {
-    return new vscode.Position(tsPoint.row, tsPoint.column);
+export function toLspPosition(tsPoint: Parser.Point): lsp.Position {
+    return lsp.Position.create(tsPoint.row, tsPoint.column);
 }
 
 export function toVSRange(tsRange: [Parser.Point, Parser.Point]) {
-    return new vscode.Range(toVSPosition(tsRange[0]), toVSPosition(tsRange[1]));
+    return lsp.Range.create(toLspPosition(tsRange[0]), toLspPosition(tsRange[1]));
 }
 
 function comparePoints(a: Parser.Point, b: Parser.Point): number {
@@ -142,7 +142,7 @@ function comparePoints(a: Parser.Point, b: Parser.Point): number {
 }
 
 function getIndicesFromRange(
-    range: vscode.Range,
+    range: lsp.Range,
     text: string,
 ): [number, number] {
     let startIndex = range.start.character;
@@ -164,14 +164,14 @@ function getIndicesFromRange(
     return [startIndex, endIndex];
 }
 
-function toTSPoint(position: vscode.Position): Parser.Point {
+function toTSPoint(position: lsp.Position): Parser.Point {
     return { row: position.line, column: position.character };
 }
 
-function textToPosition(text: string): vscode.Position {
+function textToPosition(text: string): lsp.Position {
     const lines = text.split(/\r\n|\r|\n/);
 
-    return new vscode.Position(
+    return lsp.Position.create(
         lines.length - 1,
         lines[lines.length - 1].length
     );

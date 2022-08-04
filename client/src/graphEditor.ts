@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as Parser from 'web-tree-sitter';
 
+import * as vscUtil from './vscUtil';
 import * as util from '../../util/out';
 import * as ast from '../../util/out/ast';
 
@@ -104,7 +105,7 @@ class GraphEditor {
                 const literalNode = predicateNode?.parent;
                 if (!literalNode) throw new Error("Parent literal not found for negate");
 
-                const startPosition = ast.toVSPosition(message.startPosition);
+                const startPosition = vscUtil.positionFromTS(message.startPosition);
                 const edit = new vscode.WorkspaceEdit();
                 if (new ast.Literal(literalNode).negative) {
                     edit.delete(
@@ -116,7 +117,7 @@ class GraphEditor {
                 } else {
                     edit.insert(
                         this.document.uri,
-                        ast.toVSPosition(message.startPosition),
+                        vscUtil.positionFromTS(message.startPosition),
                         '~');
                 }
                 vscode.workspace.applyEdit(edit);
@@ -127,10 +128,10 @@ class GraphEditor {
 
                 if (editor) {
                     const [startPosition, endPosition] = message.range;
-                    editor.revealRange(ast.toVSRange(message.range));
+                    editor.revealRange(vscUtil.rangeFromTS(message.range));
                     editor.selection = new vscode.Selection(
-                        ast.toVSPosition(startPosition),
-                        ast.toVSPosition(endPosition));
+                        vscUtil.positionFromTS(startPosition),
+                        vscUtil.positionFromTS(endPosition));
                 }
 
                 break;
@@ -139,7 +140,7 @@ class GraphEditor {
                 const editor = vscode.window.visibleTextEditors.find(ed => ed.document === this.document);
 
                 if (editor) {
-                    editor.revealRange(ast.toVSRange(message.range));
+                    editor.revealRange(vscUtil.rangeFromTS(message.range));
                 }
 
                 break;

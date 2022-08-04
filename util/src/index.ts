@@ -1,4 +1,4 @@
-import * as vscode from 'vscode';
+import * as lsp from 'vscode-languageserver/node';
 
 /** Debounce lifted from Underscore */
 export function debounce(f: Function, wait: number, immediate = false) {
@@ -23,8 +23,8 @@ export function pick(o: any, keys: string[]) {
     }, {});
 }
 
-export function addPositions(pos1: vscode.Position, pos2: vscode.Position): vscode.Position {
-    return new vscode.Position(
+export function addPositions(pos1: lsp.Position, pos2: lsp.Position): lsp.Position {
+    return lsp.Position.create(
         pos1.line + pos2.line,
         pos1.character + pos2.character
     );

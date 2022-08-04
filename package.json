@@ -10,9 +10,9 @@
     "Programming Languages"
   ],
   "activationEvents": [
-    "onCustomEditor:epilog.graph"
+    "onLanguage:epilog"
   ],
-  "main": "./client/out/extension.js",
+  "main": "./client/out/extension",
   "contributes": {
     "languages": [
       {
