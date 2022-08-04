@@ -138,7 +138,7 @@ class GraphEditor {
                 const editor = vscode.window.visibleTextEditors.find(ed => ed.document === this.document);
 
                 if (editor) {
-                    const [startPosition, endPosition] = message.range;
+                    const { startPosition, endPosition } = message.range;
                     editor.revealRange(vscUtil.rangeFromTS(message.range));
                     editor.selection = new vscode.Selection(
                         vscUtil.positionFromTS(startPosition),
