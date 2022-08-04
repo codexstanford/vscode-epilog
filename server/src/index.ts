@@ -129,7 +129,7 @@ async function diagnoseDocument(uri: string, tree: Parser.Tree): Promise<void> {
         checkVariables.forEach((nodes, varName) => {
             nodes.forEach(node => {
                 diagnostics.push({
-                    message: `Unsafe variable: ${varName} does not appear in any positive literals in this rule.`,
+                    message: `Unsafe variable: "${varName}" does not appear in any positive literals in this rule.`,
                     source: 'epilog',
                     range: {
                         start: ast.toLspPosition(node.startPosition),
