@@ -1,8 +1,15 @@
+/**
+ * @fileoverview Utilities for working with Tree-sitter ASTs.
+ */
+
 import * as lsp from 'vscode-languageserver/node';
 import * as Parser from 'web-tree-sitter';
 
 import * as util from '.';
 
+/**
+ * A Tree-sitter syntax node corresponding to an Epilog literal.
+ */
 export class Literal {
     args: Parser.SyntaxNode[];
     predicate: { text: string; };

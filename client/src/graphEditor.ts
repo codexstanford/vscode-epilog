@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Epilog graph editor, backed by the logic-graph package.
+ */
+
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -7,6 +11,8 @@ import * as vscUtil from './vscUtil';
 import * as util from '../../util/out';
 import * as ast from '../../util/out/ast';
 
+// logic-graph includes its own static `index.html` and compiled `app.js`.
+// We'll use these to set up our Webview.
 const graphHtmlRelativePath = path.join('node_modules', '@wohanley', 'logic-graph', 'resources', 'public', 'index.html');
 const graphJsRelativePath = path.join('node_modules', '@wohanley', 'logic-graph', 'resources', 'public', 'js', 'compiled', 'app.js');
 
@@ -36,6 +42,7 @@ export class EpilogGraphEditorProvider implements vscode.CustomTextEditorProvide
 
         Promise.all([parserLoad, rawHtml, positions])
             .then(([resolvedParser, rawHtmlResolved, positionsResolved]) => {
+                // Cache the loaded parser, or a no-op if we already had it
                 preloadedParser = resolvedParser;
 
                 // Initialize webview
@@ -91,6 +98,8 @@ class GraphEditor {
     private handleMessage(message: any) {
         switch (message.type) {
             case 'appReady':
+                // Web app has finished setting up and is ready to receive messages.
+                // Set the target language to Epilog and send the initial program state.
                 initGraphForEpilog(this.webviewPanel.webview);
                 updateGraphFromParse(this.webviewPanel.webview, this.parser, this.ast);
                 break;
@@ -109,6 +118,7 @@ class GraphEditor {
                 const startPosition = vscUtil.positionFromTS(message.startPosition);
                 const edit = new vscode.WorkspaceEdit();
                 if (new ast.Literal(literalNode).negative) {
+                    // If literal is already negative, remove the leading ~
                     edit.delete(
                         this.document.uri,
                         new vscode.Range(
@@ -116,6 +126,7 @@ class GraphEditor {
                             startPosition)
                     );
                 } else {
+                    // If literal is positive, add a leading ~
                     edit.insert(
                         this.document.uri,
                         vscUtil.positionFromTS(message.startPosition),
@@ -156,7 +167,7 @@ function astToGraphModel(parser: Parser, tree: Parser.Tree) {
     const db: any = { rules: {}, matches: [] };
     const ruleHeads: ast.Literal[] = [];
 
-    // Create all the rules first
+    // Add all the rules first
     parser.getLanguage().query(`
 		(rule
 		  head: (literal) @head)
@@ -164,6 +175,8 @@ function astToGraphModel(parser: Parser, tree: Parser.Tree) {
         const head = new ast.Literal(headCapture.node);
         ruleHeads.push(head);
         const headCode = head.toCode();
+
+        // n.b. Rules are grouped by head
         db.rules[headCode] = db.rules[headCode] || [];
         db.rules[headCode].push({
             head,
@@ -173,6 +186,7 @@ function astToGraphModel(parser: Parser, tree: Parser.Tree) {
         });
     });
 
+    // Search through rules for matches between heads and body literals
     parser.getLanguage().query(`
 		(rule
 		  head: (literal) @head
@@ -185,6 +199,9 @@ function astToGraphModel(parser: Parser, tree: Parser.Tree) {
 
         const head = new ast.Literal(headCapture.node);
 
+        // For each head/body literal match, we want (1) a path to the body literal, which looks
+        // like [rule head, source index of the rule matching that head, source index of the literal]
+        // and (2) a path to the matching rule head, which is the same minus the last component. 
         bodyCapture.node.namedChildren.forEach((bodyLiteral, subgoalIdx) => {
             const literal = new ast.Literal(bodyLiteral);
 
@@ -239,7 +256,7 @@ function updateGraphFromParse(webview: vscode.Webview, parser: Parser, ast: Pars
     });
 }
 
-function setGraphPositions(webview: vscode.Webview, positions: any) {
+function setGraphPositions(webview: vscode.Webview, positions: any): void {
     webview.postMessage({
         'type': 'lide.positionsRead',
         'positions': positions
@@ -261,9 +278,9 @@ function readPositions(folder: vscode.WorkspaceFolder | undefined) {
         .catch(() => empty);
 }
 
-function writePositions(folder: vscode.WorkspaceFolder, positions: any) {
+function writePositions(folder: vscode.WorkspaceFolder, positions: any): Promise<void> {
     return fs.mkdir(path.dirname(getPositionsFilePath(folder)), { recursive: true })
         .then(() => {
-            fs.writeFile(getPositionsFilePath(folder), JSON.stringify(positions, null, 2));
+            return fs.writeFile(getPositionsFilePath(folder), JSON.stringify(positions, null, 2));
         });
 }

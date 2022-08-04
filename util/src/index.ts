@@ -1,6 +1,10 @@
+/**
+ * @fileoverview General-purpose utilities.
+ */
+
 import * as lsp from 'vscode-languageserver/node';
 
-/** Debounce lifted from Underscore */
+// Debounce lifted from Underscore
 export function debounce(f: Function, wait: number, immediate = false) {
     let timeout: any;
     return function () {
@@ -16,6 +20,11 @@ export function debounce(f: Function, wait: number, immediate = false) {
     };
 };
 
+/**
+ * @param o an object
+ * @param keys an array of keys
+ * @returns a new object with just the properties of `o` named in `keys`
+ */
 export function pick(o: any, keys: string[]) {
     return keys.filter(k => k in o).reduce((out: any, k) => {
         out[k] = o[k];

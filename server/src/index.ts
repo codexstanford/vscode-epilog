@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Entry point for the LSP server.
+ */
+
 import * as lsp from 'vscode-languageserver/node';
 import * as Parser from 'web-tree-sitter';
 import * as path from 'path';
