@@ -1,11 +1,24 @@
 {
   "scopeName": "source.epilog",
   "patterns": [
-    {
-      "include": "#variable"
-    }
+    { "include": "#aggregates" },
+    { "include": "#comment" },
+    { "include": "#coreRelations" },
+    { "include": "#variable" }
   ],
   "repository": {
+    "aggregates": {
+      "name": "support.function",
+      "match": "setofall|countofall"
+    },
+    "comment": {
+      "name": "comment.line.percentage",
+      "match": "%.*"
+    },
+    "coreRelations": {
+      "name": "support.function",
+      "match": "same|distinct|mutex|evaluate|member|true"
+    },
     "variable": {
       "name": "variable.other",
       "match": "[A-Z][a-z\\d_\\.]*"
