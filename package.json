@@ -46,8 +46,8 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "build-tree-sitter": "tree-sitter build-wasm node_modules/tree-sitter-epilog && mv tree-sitter-epilog.wasm resources",
-    "compile": "tsc --build ./client",
-    "watch": "tsc --build --watch ./client",
+    "compile": "tsc --build ./util ./client ./server",
+    "watch": "tsc --build --watch ./util ./client ./server",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint ./client/src --ext ts",
     "test": "node ./out/test/runTest.js"

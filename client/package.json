@@ -1,5 +1,5 @@
 {
-	"name": "epilog-ls-client",
+	"name": "epilog-lsp-client",
 	"description": "Epilog LSP client",
 	"version": "0.1.0",
 	"engines": {

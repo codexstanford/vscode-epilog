@@ -13,6 +13,7 @@
 				"--extensionDevelopmentPath=${workspaceFolder}"
 			],
 			"outFiles": [
+				"${workspaceFolder}/util/out/**/*.js",
 				"${workspaceFolder}/client/out/**/*.js"
 			],
 			"preLaunchTask": {
@@ -26,18 +27,24 @@
 			"name": "Attach to Server",
 			"port": 6009,
 			"restart": true,
-			"outFiles": ["${workspaceRoot}/server/out/**/*.js"]
+			"outFiles": [
+				"${workspaceFolder}/util/out/**/*.js",
+				"${workspaceFolder}/server/out/**/*.js"
+			]
 		},
 		{
 			"name": "E2E Test",
 			"type": "extensionHost",
 			"request": "launch",
 			"args": [
-				"--extensionDevelopmentPath=${workspaceRoot}",
-				"--extensionTestsPath=${workspaceRoot}/client/out/test/index",
-				"${workspaceRoot}/client/testFixture"
+				"--extensionDevelopmentPath=${workspaceFolder}",
+				"--extensionTestsPath=${workspaceFolder}/client/out/test/index",
+				"${workspaceFolder}/client/testFixture"
 			],
-			"outFiles": ["${workspaceRoot}/client/out/test/**/*.js"]
+			"outFiles": [
+				"${workspaceFolder}/util/out/**/*.js",
+				"${workspaceFolder}/client/out/test/**/*.js"
+			]
 		}
 	],
 	"compounds": [

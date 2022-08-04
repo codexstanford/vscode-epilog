@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as Parser from 'web-tree-sitter';
 
-import * as util from './util';
+import * as util from '.';
 
 export class Literal {
     args: Parser.SyntaxNode[];
@@ -28,8 +28,38 @@ export class Literal {
     }
 }
 
-/** Literals `a` and `b` match if they have the same predicate, same arity, and
-    any ground arguments are the same. */
+export async function loadParser(wasmPath: string): Promise<Parser> {
+	await Parser.init();
+	const parser = new Parser();
+	// tree-sitter manual notes that wasm is "considerably slower" than using
+	// Node bindings, but using the Node bindings from VS Code is a PITA. See:
+	// https://github.com/microsoft/vscode/issues/658
+	// https://github.com/elm-tooling/elm-language-server/issues/692
+	// https://github.com/tree-sitter/node-tree-sitter/issues/111
+	// https://stackoverflow.com/questions/45062881/custom-node-version-to-run-vscode-extensions
+	const epilogLang = await Parser.Language.load(wasmPath);
+	parser.setLanguage(epilogLang);
+    return parser;
+}
+
+/** 
+ * Reparse `fullText` after `change`, using the results of the previous parse `ast`.
+ * 
+ * Mutates `ast`.
+ */
+export function updateAst(
+    parser: Parser,
+    ast: Parser.Tree,
+    change: { range: vscode.Range, text: string },
+    fullText: string): Parser.Tree {
+    ast.edit(getEditFromChange(change, ast.rootNode.text));
+    return parser.parse(fullText, ast);
+}
+
+/** 
+ * Literals `a` and `b` match if they have the same predicate, same arity, and
+ * any ground arguments are the same.
+ */
 export function matches(a: Literal, b: Literal): Boolean {
     if (a.predicate.text !== b.predicate.text) return false;
     if (a.args.length !== b.args.length) return false;

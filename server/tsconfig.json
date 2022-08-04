@@ -6,9 +6,9 @@
 		"outDir": "out",
 		"baseUrl": ".",
 		"paths": {
-			"@util": ["../util/src/index.ts"],
+			"@util": ["../util/src"],
 			"@util/*": ["../util/src/*"]
-		}
+		},
 	},
 	"references": [{ "path": "../util" }],
 	"include": ["src"]
