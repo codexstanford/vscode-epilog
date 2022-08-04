@@ -1,16 +1,15 @@
 import * as lsp from 'vscode-languageserver/node';
-import * as lstext from 'vscode-languageserver-textdocument';
 import * as Parser from 'web-tree-sitter';
 import * as path from 'path';
 
+import * as util from '../../util/out';
 import * as ast from '../../util/out/ast';
 
 let parser: Parser;
 
 const connection = lsp.createConnection();
 
-const documents: lsp.TextDocuments<lstext.TextDocument> = new lsp.TextDocuments(lstext.TextDocument);
-const forest: Map<string, Parser.Tree> = new Map();
+const documents: Map<string, { text: string, tree: Parser.Tree }> = new Map();
 
 connection.onInitialize(async () => {
     // Don't die on unhandled promise rejections
@@ -35,20 +34,40 @@ connection.onInitialize(async () => {
     return result;
 });
 
-// The content of a text document has changed. This event is emitted
-// when the text document first opened or when its content has changed.
-documents.onDidChangeContent(e => {
-    const ast = parser.parse(e.document.getText());
-    forest.set(e.document.uri, ast);
+connection.onDidOpenTextDocument(e => {
+    const ast = parser.parse(e.textDocument.text);
+    documents.set(e.textDocument.uri, { text: e.textDocument.text, tree: ast });
 
-    diagnoseDocument(e.document, ast);
+    diagnoseDocument(e.textDocument.uri, ast);
 });
 
-documents.onDidClose(e => {
-    forest.delete(e.document.uri);
+connection.onDidChangeTextDocument((e: lsp.DidChangeTextDocumentParams) => {
+    e.contentChanges.forEach(change => {
+        if ('range' in change) { // incremental update
+            const previous = documents.get(e.textDocument.uri)!;
+            const [start, end] = util.getIndicesFromRange(change.range, previous.text);
+            const newText = previous.text.substring(0, start) + change.text + previous.text.substring(end);
+            const newTree = ast.updateAst(parser, previous.tree, change, newText);
+            documents.set(e.textDocument.uri, {
+                text: newText,
+                tree: newTree
+            });
+        } else { // full resync
+            documents.set(e.textDocument.uri, {
+                text: change.text,
+                tree: parser.parse(change.text)
+            });
+        }
+    });
+
+    diagnoseDocument(e.textDocument.uri, documents.get(e.textDocument.uri)!.tree);
 });
 
-async function diagnoseDocument(textDocument: lstext.TextDocument, tree: Parser.Tree): Promise<void> {
+connection.onDidCloseTextDocument(e => {
+    documents.delete(e.textDocument.uri);
+});
+
+async function diagnoseDocument(uri: string, tree: Parser.Tree): Promise<void> {
     const diagnostics: lsp.Diagnostic[] = [];
 
     parser.getLanguage().query(`
@@ -122,7 +141,7 @@ async function diagnoseDocument(textDocument: lstext.TextDocument, tree: Parser.
         });
     });
 
-    connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+    connection.sendDiagnostics({ uri, diagnostics });
 }
 
 // This handler provides the initial list of the completion items.
@@ -160,8 +179,5 @@ async function diagnoseDocument(textDocument: lstext.TextDocument, tree: Parser.
 //         return item;
 //     }
 // );
-
-// Text document manager listens for open, change and close text document
-documents.listen(connection);
 
 connection.listen();

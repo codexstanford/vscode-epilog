@@ -43,17 +43,17 @@ export async function loadParser(wasmPath: string): Promise<Parser> {
 }
 
 /** 
- * Reparse `fullText` after `change`, using the results of the previous parse `ast`.
+ * Reparse `fullText` after `change`, using the results of the previous parse `previousTree`.
  * 
- * Mutates `ast`.
+ * Mutates `previousTree` *and* returns a new tree.
  */
 export function updateAst(
     parser: Parser,
-    ast: Parser.Tree,
+    previousTree: Parser.Tree,
     change: { range: lsp.Range, text: string },
     fullText: string): Parser.Tree {
-    ast.edit(getEditFromChange(change, ast.rootNode.text));
-    return parser.parse(fullText, ast);
+    previousTree.edit(getEditFromChange(change, previousTree.rootNode.text));
+    return parser.parse(fullText, previousTree);
 }
 
 /** 
@@ -73,6 +73,15 @@ export function matches(a: Literal, b: Literal): Boolean {
     }
 
     return true;
+}
+
+export function findLineage(node: Parser.SyntaxNode) {
+    let lineage = [], currentNode: Parser.SyntaxNode | null = node;
+    while (currentNode) {
+        lineage.unshift(currentNode);
+        currentNode = node.parent;
+    }
+    return lineage;
 }
 
 export function findContainingNode(root: Parser.SyntaxNode, point: Parser.Point): Parser.SyntaxNode | null {
@@ -108,9 +117,9 @@ export function getEditFromChange(
     change: { text: string; range: lsp.Range },
     text: string,
 ): Parser.Edit {
-    const [startIndex, endIndex] = getIndicesFromRange(
+    const [startIndex, endIndex] = util.getIndicesFromRange(
         change.range,
-        text,
+        text
     );
 
     return {
@@ -129,6 +138,10 @@ export function toLspPosition(tsPoint: Parser.Point): lsp.Position {
     return lsp.Position.create(tsPoint.row, tsPoint.column);
 }
 
+export function toTsPoint(position: lsp.Position): Parser.Point {
+    return { row: position.line, column: position.character };
+}
+
 export function toVSRange(tsRange: [Parser.Point, Parser.Point]) {
     return lsp.Range.create(toLspPosition(tsRange[0]), toLspPosition(tsRange[1]));
 }
@@ -139,29 +152,6 @@ function comparePoints(a: Parser.Point, b: Parser.Point): number {
     if (a.column > b.column) return 1;
     if (a.column < b.column) return -1;
     return 0;
-}
-
-function getIndicesFromRange(
-    range: lsp.Range,
-    text: string,
-): [number, number] {
-    let startIndex = range.start.character;
-    let endIndex = range.end.character;
-
-    const regex = new RegExp(/\r\n|\r|\n/);
-    const eolResult = regex.exec(text);
-
-    const lines = text.split(regex);
-    const eol = eolResult && eolResult.length > 0 ? eolResult[0] : "";
-
-    for (let i = 0; i < range.end.line; i++) {
-        if (i < range.start.line) {
-            startIndex += lines[i].length + eol.length;
-        }
-        endIndex += lines[i].length + eol.length;
-    }
-
-    return [startIndex, endIndex];
 }
 
 function toTSPoint(position: lsp.Position): Parser.Point {
