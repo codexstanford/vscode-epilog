@@ -10,7 +10,7 @@ import * as ast from '../../util/out/ast';
 const graphHtmlRelativePath = path.join('node_modules', '@wohanley', 'logic-graph', 'resources', 'public', 'index.html');
 const graphJsRelativePath = path.join('node_modules', '@wohanley', 'logic-graph', 'resources', 'public', 'js', 'compiled', 'app.js');
 
-let parser: Parser;
+let preloadedParser: Parser;
 
 export class EpilogGraphEditorProvider implements vscode.CustomTextEditorProvider {
     constructor(private readonly context: vscode.ExtensionContext) { }
@@ -18,11 +18,11 @@ export class EpilogGraphEditorProvider implements vscode.CustomTextEditorProvide
     public resolveCustomTextEditor(
         document: vscode.TextDocument,
         webviewPanel: vscode.WebviewPanel,
-        token: vscode.CancellationToken): void {
+        _token: vscode.CancellationToken): void {
         // Async initialization stuff is handled here so that GraphEditor
         // doesn't have to worry about nulls.
-        const parserLoad = parser
-            ? Promise.resolve(parser)
+        const parserLoad = preloadedParser
+            ? Promise.resolve(preloadedParser)
             : ast.loadParser(
                 path.join(
                     this.context.extensionPath,
@@ -36,6 +36,7 @@ export class EpilogGraphEditorProvider implements vscode.CustomTextEditorProvide
 
         Promise.all([parserLoad, rawHtml, positions])
             .then(([resolvedParser, rawHtmlResolved, positionsResolved]) => {
+                preloadedParser = resolvedParser;
 
                 // Initialize webview
                 webviewPanel.webview.options = { enableScripts: true };
@@ -66,7 +67,7 @@ class GraphEditor {
         // Listen for text document changes
 
         const _rerenderGraph = util.debounce(() => {
-            updateGraphFromParse(webviewPanel.webview, this.ast);
+            updateGraphFromParse(webviewPanel.webview, this.parser, this.ast);
         }, 100);
 
         const textChangeSub = vscode.workspace.onDidChangeTextDocument(
@@ -83,7 +84,7 @@ class GraphEditor {
         webviewPanel.onDidDispose(textChangeSub.dispose);
 
         // Listen for graph editor changes
-        const graphChangeSub = webviewPanel.webview.onDidReceiveMessage(this.handleMessage);
+        const graphChangeSub = webviewPanel.webview.onDidReceiveMessage(this.handleMessage.bind(this));
         webviewPanel.onDidDispose(graphChangeSub.dispose);
     }
 
@@ -91,7 +92,7 @@ class GraphEditor {
         switch (message.type) {
             case 'appReady':
                 initGraphForEpilog(this.webviewPanel.webview);
-                updateGraphFromParse(this.webviewPanel.webview, this.ast);
+                updateGraphFromParse(this.webviewPanel.webview, this.parser, this.ast);
                 break;
             case 'positionsEdited':
                 const folder = vscode.workspace.getWorkspaceFolder(this.document.uri);
@@ -151,7 +152,7 @@ class GraphEditor {
     }
 }
 
-function astToGraphModel(tree: Parser.Tree) {
+function astToGraphModel(parser: Parser, tree: Parser.Tree) {
     const db: any = { rules: {}, matches: [] };
     const ruleHeads: ast.Literal[] = [];
 
@@ -231,10 +232,10 @@ function initGraphForEpilog(webview: vscode.Webview): void {
     });
 }
 
-function updateGraphFromParse(webview: vscode.Webview, ast: Parser.Tree): void {
+function updateGraphFromParse(webview: vscode.Webview, parser: Parser, ast: Parser.Tree): void {
     webview.postMessage({
         'type': 'lide.codeUpdated.epilog',
-        'model': astToGraphModel(ast)
+        'model': astToGraphModel(parser, ast)
     });
 }
 
