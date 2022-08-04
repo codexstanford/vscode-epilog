@@ -121,7 +121,7 @@ async function diagnoseDocument(textDocument: lstext.TextDocument, tree: Parser.
             nodes.forEach(node => {
                 diagnostics.push({
                     message: `Unsafe variable: ${varName} does not appear in any positive literals in this rule.`,
-                    source: 'epilog-lsp',
+                    source: 'epilog',
                     range: {
                         start: ast.toLspPosition(node.startPosition),
                         end: ast.toLspPosition(node.endPosition)
