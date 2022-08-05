@@ -134,31 +134,36 @@ class GraphEditor {
                 vscode.workspace.applyEdit(edit);
                 break;
             }
-            case 'selectRange': {
-                const editor = vscode.window.visibleTextEditors.find(ed => ed.document === this.document);
+            case 'focusRange': {
+                this.ifEditor(editor => {
+                    selectRange(editor, vscUtil.rangeFromTS(message.range));
+                    vscode.window.showTextDocument(this.document, { preview: false, viewColumn: editor.viewColumn });
+                });
 
-                if (editor) {
-                    const { startPosition, endPosition } = message.range;
-                    editor.revealRange(vscUtil.rangeFromTS(message.range));
-                    editor.selection = new vscode.Selection(
-                        vscUtil.positionFromTS(startPosition),
-                        vscUtil.positionFromTS(endPosition));
-                }
+                break;
+            }
+            case 'selectRange': {
+                this.ifEditor(editor => {
+                    selectRange(editor, vscUtil.rangeFromTS(message.range));
+                });
 
                 break;
             }
             case 'showRange': {
-                const editor = vscode.window.visibleTextEditors.find(ed => ed.document === this.document);
-
-                if (editor) {
+                this.ifEditor(editor => {
                     editor.revealRange(vscUtil.rangeFromTS(message.range));
-                }
+                });
 
                 break;
             }
             default:
                 console.log("Received unrecognized message:", message);
         }
+    }
+
+    private ifEditor(fn: (e: vscode.TextEditor) => void): void {
+        const editor = vscode.window.visibleTextEditors.find(ed => ed.document === this.document);
+        if (editor) fn(editor);
     }
 }
 
@@ -222,6 +227,11 @@ function astToGraphModel(parser: Parser, tree: Parser.Tree) {
     });
 
     return db;
+}
+
+function selectRange(editor: vscode.TextEditor, range: vscode.Range): void {
+    editor.revealRange(range);
+    editor.selection = new vscode.Selection(range.start, range.end);
 }
 
 /**
