@@ -72,6 +72,36 @@ connection.onDidCloseTextDocument(e => {
 });
 
 async function diagnoseDocument(uri: string, tree: Parser.Tree): Promise<void> {
+    connection.sendDiagnostics({
+        uri,
+        diagnostics: [
+            diagnoseErrors(tree),
+            diagnoseUnsafeVariables(tree)
+        ].flat()
+    });
+}
+
+function diagnoseErrors(tree: Parser.Tree): lsp.Diagnostic[] {
+    const diagnostics: lsp.Diagnostic[] = [];
+
+    parser.getLanguage().query(`
+        (ERROR) @error
+    `).captures(tree.rootNode).forEach(capture => {
+        diagnostics.push({
+            message: "Parse error",
+            source: 'epilog',
+            range: {
+                start: ast.toLspPosition(capture.node.startPosition),
+                end: ast.toLspPosition(capture.node.endPosition)
+            },
+            severity: lsp.DiagnosticSeverity.Error
+        });
+    });
+
+    return diagnostics;
+}
+
+function diagnoseUnsafeVariables(tree: Parser.Tree): lsp.Diagnostic[] {
     const diagnostics: lsp.Diagnostic[] = [];
 
     parser.getLanguage().query(`
@@ -145,7 +175,7 @@ async function diagnoseDocument(uri: string, tree: Parser.Tree): Promise<void> {
         });
     });
 
-    connection.sendDiagnostics({ uri, diagnostics });
+    return diagnostics;
 }
 
 connection.listen();
