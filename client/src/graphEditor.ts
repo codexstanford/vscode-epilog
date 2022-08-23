@@ -190,6 +190,20 @@ function astToGraphModel(parser: Parser, tree: Parser.Tree) {
         });
     });
 
+    // Add top-level literals too
+    const cursor  = tree.rootNode.walk();
+    cursor.gotoFirstChild();
+    do {
+        const node = cursor.currentNode();
+        if (node.type === 'literal') {
+            const literal = new ast.Literal(node);
+            ruleHeads.push(literal);
+            const code = literal.toCode();
+            db.rules[code] = db.rules[code] || [];
+            db.rules[code].push({ head: literal, body: [] });
+        }
+    } while (cursor.gotoNextSibling());
+
     // Search through rules for matches between heads and body literals
     parser.getLanguage().query(`
 		(rule
