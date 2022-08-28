@@ -7,6 +7,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as Parser from 'web-tree-sitter';
 
+import * as epilog from '../../epilog/src';
 import * as vscUtil from './vscUtil';
 import * as util from '../../util/out';
 import * as ast from '../../util/out/ast';
@@ -132,6 +133,28 @@ class GraphEditor {
                         '~');
                 }
                 vscode.workspace.applyEdit(edit);
+                break;
+            }
+            case 'queryRule': {
+                const dataPath = path.join(
+                    path.dirname(this.document.uri.fsPath),
+                    'data.epilog');
+                
+                Promise.all([
+                    fs.readFile(dataPath, { encoding: 'utf-8' })
+                ]).then(([data]) => {
+                    epilog.init().then(el => {
+                        const results = el.find(
+                            data,
+                            this.document.getText(),
+                            this.document.getText(
+                                new vscode.Range(
+                                    vscUtil.positionFromTS(message.startPosition),
+                                    vscUtil.positionFromTS(message.endPosition)
+                                )));
+                        console.log(results);
+                    });
+                });
                 break;
             }
             case 'focusRange': {

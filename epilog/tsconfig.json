@@ -1,0 +1,10 @@
+{
+	"compilerOptions": {
+		"composite": true,
+		"allowJs": true,
+		"rootDir": "src",
+		"outDir": "out",
+		"baseUrl": "."
+	},
+	"include": ["src"]
+}
