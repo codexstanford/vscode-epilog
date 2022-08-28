@@ -144,15 +144,14 @@ class GraphEditor {
                     fs.readFile(dataPath, { encoding: 'utf-8' })
                 ]).then(([data]) => {
                     epilog.init().then(el => {
-                        const results = el.find(
-                            data,
-                            this.document.getText(),
-                            this.document.getText(
-                                new vscode.Range(
-                                    vscUtil.positionFromTS(message.startPosition),
-                                    vscUtil.positionFromTS(message.endPosition)
-                                )));
-                        console.log(results);
+                        // TODO normalize queries
+                        const query = this.document.getText(
+                            new vscode.Range(
+                                vscUtil.positionFromTS(message.startPosition),
+                                vscUtil.positionFromTS(message.endPosition)
+                            ));
+                        const result = el.find(data, this.document.getText(), query);
+                        sendQueryResult(this.webviewPanel.webview, query, result);
                     });
                 });
                 break;
@@ -299,6 +298,14 @@ function updateGraphFromParse(webview: vscode.Webview, parser: Parser, ast: Pars
     webview.postMessage({
         'type': 'lide.codeUpdated.epilog',
         'model': astToGraphModel(parser, ast)
+    });
+}
+
+function sendQueryResult(webview: vscode.Webview, query: string, result: any[]): void {
+    webview.postMessage({
+        'type': 'lide.queryResult',
+        'query': query,
+        'result': result
     });
 }
 

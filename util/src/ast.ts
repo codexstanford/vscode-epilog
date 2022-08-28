@@ -11,17 +11,19 @@ import * as util from '.';
  * A Tree-sitter syntax node corresponding to an Epilog literal.
  */
 export class Literal {
+    text: string;
+    startPosition: Parser.Point;
+    endPosition: Parser.Point;
     args: Parser.SyntaxNode[];
     predicate: { text: string; };
     nodeId: number;
     negative: boolean;
-    startPosition: Parser.Point;
-    endPosition: Parser.Point;
 
     constructor(node: Parser.SyntaxNode) {
-        this.nodeId = node.id;
+        this.text = node.text;
         this.startPosition = node.startPosition;
         this.endPosition = node.endPosition;
+        this.nodeId = node.id;
         this.negative = node.firstChild?.type === 'op_negate';
 
         const predicateNode = node.childForFieldName('predicate');
