@@ -4803,15 +4803,6 @@ function negativep(expr)
  {if (!expr.length) {return false}
   return expr[0] === 'not'}
 
-/**
- * @param expr An expression representing a literal 
- * @returns `expr`'s predicate
- */
-function predicate(expr)
- {if (negativep(expr)) {return expr[1][0]}
-  if (!expr.length) {return null}
-  return expr[0]}
-
 //==============================================================================
 // Exports
 //==============================================================================
@@ -4823,7 +4814,6 @@ module.exports = {
   grind,
   matchp,
   negativep,
-  predicate,
   read,
   readdata,
   varp
