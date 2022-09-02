@@ -7,7 +7,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as Parser from 'web-tree-sitter';
 
-import * as epilog from '../../epilog/src';
+import * as epilog from '../../epilog/src/epilog.js';
 import * as vscUtil from './vscUtil';
 import * as util from '../../util/out';
 import * as ast from '../../util/out/ast';
@@ -117,8 +117,11 @@ class GraphEditor {
 
                 const startPosition = vscUtil.positionFromTS(message.startPosition);
                 const edit = new vscode.WorkspaceEdit();
-                if (new ast.Literal(literalNode).negative) {
+                const value = epilog.read(literalNode.text);
+                if (value.length && value[0] === 'not') {
                     // If literal is already negative, remove the leading ~
+                    // TODO tolerate whitespace: use Tree-sitter to find the
+                    // exact extent of the negation operator
                     edit.delete(
                         this.document.uri,
                         new vscode.Range(
@@ -135,7 +138,7 @@ class GraphEditor {
                 vscode.workspace.applyEdit(edit);
                 break;
             }
-            case 'queryRule': {
+            case 'query': {
                 const dataPath = path.join(
                     path.dirname(this.document.uri.fsPath),
                     'data.epilog');
@@ -143,16 +146,16 @@ class GraphEditor {
                 Promise.all([
                     fs.readFile(dataPath, { encoding: 'utf-8' })
                 ]).then(([data]) => {
-                    epilog.init().then(el => {
-                        // TODO normalize queries
-                        const query = this.document.getText(
-                            new vscode.Range(
-                                vscUtil.positionFromTS(message.startPosition),
-                                vscUtil.positionFromTS(message.endPosition)
-                            ));
-                        const result = el.find(data, this.document.getText(), query);
-                        sendQueryResult(this.webviewPanel.webview, query, result);
-                    });
+                    const dataset: any[] = [];
+                    epilog.definefacts(dataset, epilog.readdata(data));
+                    const ruleset: any[] = [];
+                    epilog.definerules(ruleset, epilog.readdata(this.document.getText()));
+                    const result = epilog.compfinds(
+                        epilog.read(message.query), 
+                        epilog.read(message.query), 
+                        dataset, 
+                        ruleset);
+                    sendQueryResult(this.webviewPanel.webview, message.query, result);
                 });
                 break;
             }
@@ -189,25 +192,63 @@ class GraphEditor {
     }
 }
 
+class LiteralViewModel {
+    predicate: {
+        text: string,
+        startPosition: Parser.Point,
+        endPosition: Parser.Point
+    };
+    args: {
+        type: string,
+        text: string,
+        startPosition: Parser.Point,
+        endPosition: Parser.Point
+    }[] = [];
+    negative = false;
+    repr: string;
+
+    constructor(expr: ast.Expression) {
+        Object.assign(this, util.pick(expr, [
+            'type',
+            'text',
+            'startPosition',
+            'endPosition',
+            'nodeId',
+            'value'
+        ]));
+
+        this.repr = epilog.grind(expr.value);
+
+        this.negative = epilog.negativep(expr.value);
+
+        const predicateNode = expr.node.childForFieldName('predicate');
+        if (!predicateNode) throw new Error("Impossible AST: Literal without predicate");
+        this.predicate = util.pick(predicateNode, ['text', 'startPosition', 'endPosition']);
+
+        const argsNode = expr.node.childForFieldName('args');
+        this.args = (argsNode ? argsNode.namedChildren : []).map(argNode => {
+            return util.pick(argNode, ['type', 'text', 'startPosition', 'endPosition']);
+        });
+    }
+}
+
 function astToGraphModel(parser: Parser, tree: Parser.Tree) {
     const db: any = { rules: {}, matches: [] };
-    const ruleHeads: ast.Literal[] = [];
+    const ruleHeads: ast.Expression[] = [];
 
-    // Add all the rules first
+    // Add all the rules first, grouped by head
     parser.getLanguage().query(`
 		(rule
 		  head: (literal) @head)
 	`).captures(tree.rootNode).forEach(headCapture => {
-        const head = new ast.Literal(headCapture.node);
+        const head = new ast.Expression(headCapture.node);
         ruleHeads.push(head);
-        const headCode = head.toCode();
-
-        // n.b. Rules are grouped by head
-        db.rules[headCode] = db.rules[headCode] || [];
-        db.rules[headCode].push({
-            head,
+        const repr = epilog.grind(head.value);
+        db.rules[repr] = db.rules[repr] || [];
+        db.rules[repr].push({
+            head: new LiteralViewModel(head),
             body: (headCapture.node.nextNamedSibling?.namedChildren || []).map(bodyLiteral => {
-                return new ast.Literal(bodyLiteral);
+                return new LiteralViewModel(new ast.Expression(bodyLiteral));
             })
         });
     });
@@ -218,11 +259,11 @@ function astToGraphModel(parser: Parser, tree: Parser.Tree) {
     do {
         const node = cursor.currentNode();
         if (node.type === 'literal') {
-            const literal = new ast.Literal(node);
+            const literal = new ast.Expression(node);
             ruleHeads.push(literal);
-            const code = literal.toCode();
-            db.rules[code] = db.rules[code] || [];
-            db.rules[code].push({ head: literal, body: [] });
+            const repr = epilog.grind(literal.value);
+            db.rules[repr] = db.rules[repr] || [];
+            db.rules[repr].push({ head: new LiteralViewModel(literal), body: [] });
         }
     } while (cursor.gotoNextSibling());
 
@@ -237,25 +278,25 @@ function astToGraphModel(parser: Parser, tree: Parser.Tree) {
 
         if (!headCapture || !bodyCapture) throw new Error("Impossible AST");
 
-        const head = new ast.Literal(headCapture.node);
+        const head = new ast.Expression(headCapture.node);
 
         // For each head/body literal match, we want (1) a path to the body literal, which looks
         // like [rule head, source index of the rule matching that head, source index of the literal]
         // and (2) a path to the matching rule head, which is the same minus the last component. 
         bodyCapture.node.namedChildren.forEach((bodyLiteral, subgoalIdx) => {
-            const literal = new ast.Literal(bodyLiteral);
+            const literal = new ast.Expression(bodyLiteral);
 
             ruleHeads.filter(head => {
-                return ast.matches(head, literal);
+                return epilog.matchp(literal.value, head.value);
             }).forEach(matchingHead => {
-                const matchingHeadCode = matchingHead.toCode();
-                Object.entries(db.rules[matchingHeadCode]).forEach((_, matchingBodyIdx) => {
+                const matchingHeadRepr = epilog.grind(matchingHead.value);
+                Object.entries(db.rules[matchingHeadRepr]).forEach((_, matchingBodyIdx) => {
                     const bodyIdx = ruleHeads
-                        .filter(l => l.toCode() === matchingHeadCode)
-                        .findIndex(l => l.nodeId === matchingHead.nodeId);
+                        .filter(l => epilog.grind(l.value) === matchingHeadRepr)
+                        .findIndex(l => l.node.id === matchingHead.node.id);
                     db.matches.push({
-                        subgoal: [head.toCode(), bodyIdx, subgoalIdx],
-                        rule: [matchingHeadCode, matchingBodyIdx]
+                        subgoal: [epilog.grind(head.value), bodyIdx, subgoalIdx],
+                        rule: [matchingHeadRepr, matchingBodyIdx]
                     });
                 });
             });

@@ -4,40 +4,21 @@
 
 import * as lsp from 'vscode-languageserver/node';
 import * as Parser from 'web-tree-sitter';
+import * as epilog from '../../epilog/src/epilog.js';
 
 import * as util from '.';
 
 /**
- * A Tree-sitter syntax node corresponding to an Epilog literal.
+ * An Epilog expression, including information about its internal
+ * representation and the corresponding Tree-sitter syntax node.
  */
-export class Literal {
-    text: string;
-    startPosition: Parser.Point;
-    endPosition: Parser.Point;
-    args: Parser.SyntaxNode[];
-    predicate: { text: string; };
-    nodeId: number;
-    negative: boolean;
+export class Expression {
+    node: Parser.SyntaxNode;
+    value: any;
 
     constructor(node: Parser.SyntaxNode) {
-        this.text = node.text;
-        this.startPosition = node.startPosition;
-        this.endPosition = node.endPosition;
-        this.nodeId = node.id;
-        this.negative = node.firstChild?.type === 'op_negate';
-
-        const predicateNode = node.childForFieldName('predicate');
-        if (!predicateNode) throw new Error("Impossible AST: Literal without predicate");
-        this.predicate = util.pick(predicateNode, ['text', 'startPosition', 'endPosition']);
-
-        const argsNode = node.childForFieldName('args');
-        this.args = (argsNode ? argsNode.namedChildren : []).map(argNode => {
-            return util.pick(argNode, ['type', 'text', 'startPosition', 'endPosition']);
-        });
-    }
-
-    public toCode(): string {
-        return (this.negative ? '~' : '') + this.predicate.text + '(' + this.args.map(arg => arg.text).join(',') + ')';
+        this.node = node;
+        this.value = epilog.read(node.text);
     }
 }
 
@@ -67,25 +48,6 @@ export function updateAst(
     fullText: string): Parser.Tree {
     previousTree.edit(getEditFromChange(change, previousTree.rootNode.text));
     return parser.parse(fullText, previousTree);
-}
-
-/** 
- * Literals `a` and `b` match if they have the same predicate, same arity, and
- * any ground arguments are the same.
- */
-export function matches(a: Literal, b: Literal): Boolean {
-    if (a.predicate.text !== b.predicate.text) return false;
-    if (a.args.length !== b.args.length) return false;
-
-    for (let i = 0; i < a.args.length; i++) {
-        if (a.args[i].type !== 'variable' &&
-            b.args[i].type !== 'variable' &&
-            a.args[i].text !== b.args[i].text) {
-            return false;
-        }
-    }
-
-    return true;
 }
 
 export function findLineage(node: Parser.SyntaxNode) {
