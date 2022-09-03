@@ -287,7 +287,11 @@ function astToGraphModel(parser: Parser, tree: Parser.Tree) {
             const literal = new ast.Expression(bodyLiteral);
 
             ruleHeads.filter(head => {
+                if (epilog.negativep(literal.value)) {
+                    return epilog.matchp(literal.value[1], head.value);
+                } else {
                 return epilog.matchp(literal.value, head.value);
+                }
             }).forEach(matchingHead => {
                 const matchingHeadRepr = epilog.grind(matchingHead.value);
                 Object.entries(db.rules[matchingHeadRepr]).forEach((_, matchingBodyIdx) => {
