@@ -7,7 +7,8 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as Parser from 'web-tree-sitter';
 
-import * as epilog from '../../epilog/src/epilog.js';
+import * as epilog from '../../epilog/out/epilog';
+import * as explain from '../../epilog/out/explain';
 import * as vscUtil from './vscUtil';
 import * as util from '../../util/out';
 import * as ast from '../../util/out/ast';
@@ -155,7 +156,9 @@ class GraphEditor {
                         epilog.read(message.query), 
                         dataset, 
                         ruleset);
-                    sendQueryResult(this.webviewPanel.webview, message.query, result);
+                    sendQueryResult(this.webviewPanel.webview, message.query, result.map((instance: any) => {
+                        return new explain.Explanation(instance, dataset, ruleset);
+                    }));
                 });
                 break;
             }
@@ -290,7 +293,7 @@ function astToGraphModel(parser: Parser, tree: Parser.Tree) {
                 if (epilog.negativep(literal.value)) {
                     return epilog.matchp(literal.value[1], head.value);
                 } else {
-                return epilog.matchp(literal.value, head.value);
+                    return epilog.matchp(literal.value, head.value);
                 }
             }).forEach(matchingHead => {
                 const matchingHeadRepr = epilog.grind(matchingHead.value);

@@ -4808,14 +4808,22 @@ function negativep(expr)
 //==============================================================================
 
 module.exports = {
+  basep,
   compfinds,
+  compfindx,
   definefacts,
   definerules,
+  equalp,
   grind,
+  lookupfacts,
+  lookuprules,
+  maksand,
   matchp,
   negativep,
   read,
   readdata,
+  seq,
+  symbolp,
   varp
 };
 
