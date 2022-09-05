@@ -4809,6 +4809,10 @@ function negativep(expr)
 
 module.exports = {
   basep,
+  basefindp,
+  basefinds,
+  basefindx,
+  compfindp,
   compfinds,
   compfindx,
   definefacts,
@@ -4823,8 +4827,10 @@ module.exports = {
   read,
   readdata,
   seq,
+  stripquotes,
   symbolp,
-  varp
+  varp,
+  vars
 };
 
 //==============================================================================

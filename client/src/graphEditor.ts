@@ -8,7 +8,8 @@ import * as vscode from 'vscode';
 import * as Parser from 'web-tree-sitter';
 
 import * as epilog from '../../epilog/out/epilog';
-import * as explain from '../../epilog/out/explain';
+import * as english from '../../epilog/out/englishExplanation';
+import * as explainStorage from '../../epilog/out/localStorage';
 import * as vscUtil from './vscUtil';
 import * as util from '../../util/out';
 import * as ast from '../../util/out/ast';
@@ -143,10 +144,20 @@ class GraphEditor {
                 const dataPath = path.join(
                     path.dirname(this.document.uri.fsPath),
                     'data.epilog');
+                const metadataPath = path.join(
+                    path.dirname(this.document.uri.fsPath),
+                    '..',
+                    'metadata.epilog');
+                const templatesPath = path.join(
+                    path.dirname(this.document.uri.fsPath),
+                    '..',
+                    'templates.epilog');
                 
                 Promise.all([
-                    fs.readFile(dataPath, { encoding: 'utf-8' })
-                ]).then(([data]) => {
+                    fs.readFile(dataPath, { encoding: 'utf-8' }),
+                    fs.readFile(metadataPath, { encoding: 'utf-8' }),
+                    fs.readFile(templatesPath, { encoding: 'utf-8' })
+                ]).then(([data, metadata, templates]) => {
                     const dataset: any[] = [];
                     epilog.definefacts(dataset, epilog.readdata(data));
                     const ruleset: any[] = [];
@@ -157,7 +168,16 @@ class GraphEditor {
                         dataset, 
                         ruleset);
                     sendQueryResult(this.webviewPanel.webview, message.query, result.map((instance: any) => {
-                        return new explain.Explanation(instance, dataset, ruleset);
+                        return {
+                            result: instance,
+                            explanation: english.toEnglish(
+                                instance,
+                                dataset,
+                                ruleset,
+                                epilog.readdata(metadata),
+                                explainStorage.getEnglishTemplates(templates),
+                                { linkFromExplanation: false })
+                        };
                     }));
                 });
                 break;
@@ -349,11 +369,11 @@ function updateGraphFromParse(webview: vscode.Webview, parser: Parser, ast: Pars
     });
 }
 
-function sendQueryResult(webview: vscode.Webview, query: string, result: any[]): void {
+function sendQueryResult(webview: vscode.Webview, query: string, results: any[]): void {
     webview.postMessage({
         'type': 'lide.queryResult',
         'query': query,
-        'result': result
+        'results': results
     });
 }
 

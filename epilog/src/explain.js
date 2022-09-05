@@ -1,26 +1,5 @@
 const epilog = require('./epilog.js');
 
-class Explanation {
-  fact = [];
-  derivation = [];
-
-  constructor(fact, facts, rules) {
-    if (typeof fact === 'string') fact = epilog.read(fact);
-    
-    this.fact = fact;
-    
-    const explanation = explain(fact, facts, rules);
-
-    if (typeof explanation === 'string') return;
-    if (explanation[0] !== 'rule') return;
-    if (explanation.length < 2) return;
-
-    for (let i = 2; i < explanation.length; i++) {
-      this.derivation.push(new Explanation(explanation[i], facts, rules));
-    }
-  }
-}
-
 //==============================================================================
 // First argument p is a ground atom derivable from facts and rules.
 // Value is a ground version of a rule used to derive the first argument.
@@ -30,7 +9,7 @@ class Explanation {
 
 //Note from Preston Carlson: This does not check whether p is derivable from facts and rules. 
   //In that case, will simply return p, which is not desirable because p is returned as an explanation for some true facts. (e.g. "not" facts)
-function explain(p, facts, rules)
+export function explain(p, facts, rules)
  {//console.log("Explain: ", p);
   if (epilog.symbolp(p)) {return explainatom(p,facts,rules)}
   if (p[0]==='same') {return p}
@@ -145,8 +124,3 @@ function plugstring (x,al)
       {var pattern = new RegExp('\\$' + al[i][0] + '\\$','g');
        x = x.replace(pattern,al[i][1])};
   return x}
-
-module.exports = { 
-  Explanation,
-  explain 
-};
