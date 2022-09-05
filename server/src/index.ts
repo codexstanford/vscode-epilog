@@ -6,8 +6,8 @@ import * as lsp from 'vscode-languageserver/node';
 import * as Parser from 'web-tree-sitter';
 import * as path from 'path';
 
-import * as util from '../../util/out';
-import * as ast from '../../util/out/ast';
+import * as util from '#util';
+import * as ast from '#util/ast';
 
 let parser: Parser;
 

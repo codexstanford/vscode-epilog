@@ -5,11 +5,6 @@
 		"allowJs": true,
 		"rootDir": "src",
 		"outDir": "out",
-		"baseUrl": ".",
-		"paths": {
-			"@util": ["../util/src/index.ts"],
-			"@util/*": ["../util/src/*"]
-		}
 	},
 	"references": [
 		{ "path": "../util" },

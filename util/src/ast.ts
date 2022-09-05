@@ -3,8 +3,8 @@
  */
 
 import * as lsp from 'vscode-languageserver/node';
-import * as Parser from 'web-tree-sitter';
-import * as epilog from '../../epilog/src/epilog.js';
+import Parser from 'web-tree-sitter';
+import * as epilog from '#epilog/epilog';
 
 import * as util from '.';
 

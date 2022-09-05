@@ -7,12 +7,12 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as Parser from 'web-tree-sitter';
 
-import * as epilog from '../../epilog/out/epilog';
-import * as english from '../../epilog/out/englishExplanation';
-import * as explainStorage from '../../epilog/out/localStorage';
-import * as vscUtil from './vscUtil';
-import * as util from '../../util/out';
-import * as ast from '../../util/out/ast';
+import * as epilog from '#epilog/epilog';
+import * as english from '#epilog/englishExplanation';
+import * as explainStorage from '#epilog/localStorage';
+import * as vscUtil from './vscUtil.js';
+import * as util from '#util';
+import * as ast from '#util/ast';
 
 // logic-graph includes its own static `index.html` and compiled `app.js`.
 // We'll use these to set up our Webview.
@@ -71,7 +71,6 @@ class GraphEditor {
         this.tree = this.parser.parse(document.getText());
 
         // Listen for text document changes
-
         const _rerenderGraph = util.debounce(() => {
             updateGraphFromParse(webviewPanel.webview, this.parser, this.tree);
         }, 100);

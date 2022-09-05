@@ -45,6 +45,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
+    "prepare": "ts-patch install -s",
     "build-tree-sitter": "tree-sitter build-wasm node_modules/tree-sitter-epilog && mv tree-sitter-epilog.wasm resources",
     "compile": "tsc --build ./util ./client ./server",
     "watch": "tsc --build --watch ./util ./client ./server",
@@ -64,7 +65,9 @@
     "glob": "^8.0.3",
     "mocha": "^10.0.0",
     "tree-sitter-epilog": "file:../../tree-sitter-epilog",
-    "typescript": "^4.7.4"
+    "ts-patch": "^2.0.2",
+    "typescript": "^4.7.4",
+    "typescript-transform-paths": "^3.3.1"
   },
   "dependencies": {
     "web-tree-sitter": "^0.20.5"

@@ -3,12 +3,7 @@
 	"compilerOptions": {
 		"composite": true,
 		"rootDir": "src",
-		"outDir": "out",
-		"baseUrl": ".",
-		"paths": {
-			"@util": ["../util/src"],
-			"@util/*": ["../util/src/*"]
-		},
+		"outDir": "out"
 	},
 	"references": [{ "path": "../util" }],
 	"include": ["src"]
