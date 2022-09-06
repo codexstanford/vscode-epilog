@@ -13,8 +13,9 @@
 				"--extensionDevelopmentPath=${workspaceFolder}"
 			],
 			"outFiles": [
-				"${workspaceFolder}/util/out/**/*.js",
-				"${workspaceFolder}/client/out/**/*.js"
+				"${workspaceFolder}/client/out/**/*.js",
+				"${workspaceFolder}/epilog/out/**/*.js",
+				"${workspaceFolder}/util/out/**/*.js"
 			],
 			"preLaunchTask": {
 				"type": "npm",
@@ -28,8 +29,9 @@
 			"port": 6009,
 			"restart": true,
 			"outFiles": [
-				"${workspaceFolder}/util/out/**/*.js",
-				"${workspaceFolder}/server/out/**/*.js"
+				"${workspaceFolder}/epilog/out/**/*.js",
+				"${workspaceFolder}/server/out/**/*.js",
+				"${workspaceFolder}/util/out/**/*.js"
 			]
 		},
 		{
@@ -42,8 +44,9 @@
 				"${workspaceFolder}/client/testFixture"
 			],
 			"outFiles": [
-				"${workspaceFolder}/util/out/**/*.js",
-				"${workspaceFolder}/client/out/test/**/*.js"
+				"${workspaceFolder}/epilog/out/**/*.js",
+				"${workspaceFolder}/client/out/test/**/*.js",
+				"${workspaceFolder}/util/out/**/*.js"
 			]
 		}
 	],
