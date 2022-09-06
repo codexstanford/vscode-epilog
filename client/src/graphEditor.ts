@@ -114,7 +114,6 @@ class GraphEditor {
             case 'createRule': {
                 this.ifEditor(editor => {
                     // TODO Should place rule in the source text near its neighbours in the graph.
-                    const graphPosition = message.position;
                     const docEnd = editor.document.lineAt(editor.document.lineCount - 1).range.end;
                     editor.edit(e => {
                         e.insert(docEnd, "\n\nrule(Arg)");
