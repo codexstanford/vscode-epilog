@@ -111,6 +111,20 @@ class GraphEditor {
                 if (!folder) return;
                 writePositions(folder, message.positions);
                 break;
+            case 'createRule': {
+                this.ifEditor(editor => {
+                    // TODO Should place rule in the source text near its neighbours in the graph.
+                    const graphPosition = message.position;
+                    const docEnd = editor.document.lineAt(editor.document.lineCount - 1).range.end;
+                    editor.edit(e => {
+                        e.insert(docEnd, "\n\nrule(Arg)");
+                    });
+                     // highlight: |rule|(Arg)
+                    const anchor = new vscode.Position(docEnd.line + 2, 0);
+                    focusRange(editor, this.document, new vscode.Range(anchor, anchor.translate(0, 4)));
+                });
+                break;
+            }
             case 'negateLiteral': {
                 const predicateNode = ast.findContainingNode(this.tree.rootNode, message.startPosition);
                 const literalNode = predicateNode?.parent;
@@ -183,24 +197,20 @@ class GraphEditor {
             }
             case 'focusRange': {
                 this.ifEditor(editor => {
-                    selectRange(editor, vscUtil.rangeFromTS(message.range));
-                    vscode.window.showTextDocument(this.document, { preview: false, viewColumn: editor.viewColumn });
+                    focusRange(editor, this.document, vscUtil.rangeFromTS(message.range));
                 });
-
                 break;
             }
             case 'selectRange': {
                 this.ifEditor(editor => {
                     selectRange(editor, vscUtil.rangeFromTS(message.range));
                 });
-
                 break;
             }
             case 'showRange': {
                 this.ifEditor(editor => {
                     editor.revealRange(vscUtil.rangeFromTS(message.range));
                 });
-
                 break;
             }
             default:
@@ -335,6 +345,11 @@ function astToGraphModel(parser: Parser, tree: Parser.Tree) {
 function selectRange(editor: vscode.TextEditor, range: vscode.Range): void {
     editor.revealRange(range);
     editor.selection = new vscode.Selection(range.start, range.end);
+}
+
+function focusRange(editor: vscode.TextEditor, document: vscode.TextDocument, range: vscode.Range): void {
+    selectRange(editor, range);
+    vscode.window.showTextDocument(document, { preview: false, viewColumn: editor.viewColumn });
 }
 
 /**
