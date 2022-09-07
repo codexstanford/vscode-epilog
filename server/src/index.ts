@@ -26,7 +26,13 @@ connection.onInitialize(async () => {
     parser = await ast.loadParser(
         path.relative(
             process.cwd(),
-            path.join(__dirname, '..', '..', 'node_modules', 'tree-sitter-epilog', 'tree-sitter-epilog.wasm'))
+            path.join(
+                __dirname,
+                '..', '..',
+                'node_modules',
+                '@codexstanford',
+                'tree-sitter-epilog',
+                'tree-sitter-epilog.wasm'))
     );
 
     const result: lsp.InitializeResult = {

@@ -1,8 +1,8 @@
 {
-  "name": "vscode-epilog",
+  "name": "@codexstanford/vscode-epilog",
   "displayName": "Epilog Language Tools",
   "description": "Tools for writing and working with Epilog programs.",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "engines": {
     "vscode": "^1.68.0"
   },
@@ -46,7 +46,6 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "prepare": "ts-patch install -s",
-    "build-tree-sitter": "tree-sitter build-wasm node_modules/tree-sitter-epilog && mv tree-sitter-epilog.wasm resources",
     "compile": "tsc --build ./util ./client ./server",
     "watch": "tsc --build --watch ./util ./client ./server",
     "pretest": "npm run compile && npm run lint",
@@ -64,12 +63,13 @@
     "eslint": "^8.18.0",
     "glob": "^8.0.3",
     "mocha": "^10.0.0",
-    "tree-sitter-epilog": "file:../../tree-sitter-epilog",
     "ts-patch": "^2.0.2",
     "typescript": "^4.7.4",
     "typescript-transform-paths": "^3.3.1"
   },
   "dependencies": {
+    "@codexstanford/logic-graph": "github:codexstanford/LIDE",
+    "@codexstanford/tree-sitter-epilog": "github:codexstanford/tree-sitter-epilog",
     "web-tree-sitter": "^0.20.5"
   }
 }

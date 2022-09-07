@@ -16,8 +16,8 @@ import * as ast from '#util/ast';
 
 // logic-graph includes its own static `index.html` and compiled `app.js`.
 // We'll use these to set up our Webview.
-const graphHtmlRelativePath = path.join('node_modules', '@wohanley', 'logic-graph', 'resources', 'public', 'index.html');
-const graphJsRelativePath = path.join('node_modules', '@wohanley', 'logic-graph', 'resources', 'public', 'js', 'compiled', 'app.js');
+const graphHtmlRelativePath = path.join('node_modules', '@codexstanford', 'logic-graph', 'resources', 'public', 'index.html');
+const graphJsRelativePath = path.join('node_modules', '@codexstanford', 'logic-graph', 'resources', 'public', 'js', 'compiled', 'app.js');
 
 let preloadedParser: Parser;
 
@@ -35,7 +35,10 @@ export class EpilogGraphEditorProvider implements vscode.CustomTextEditorProvide
             : ast.loadParser(
                 path.join(
                     this.context.extensionPath,
-                    'node_modules', 'tree-sitter-epilog', 'tree-sitter-epilog.wasm'));
+                    'node_modules',
+                    '@codexstanford',
+                    'tree-sitter-epilog',
+                    'tree-sitter-epilog.wasm'));
 
         const rawHtml = fs.readFile(
             path.join(this.context.extensionPath, graphHtmlRelativePath),
