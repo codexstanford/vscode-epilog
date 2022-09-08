@@ -30,7 +30,7 @@ connection.onInitialize(async () => {
                 __dirname,
                 '..', '..',
                 'node_modules',
-                '@codexstanford',
+                '@epilog',
                 'tree-sitter-epilog',
                 'tree-sitter-epilog.wasm'))
     );

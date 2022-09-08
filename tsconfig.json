@@ -21,6 +21,9 @@
 			{ "transform": "typescript-transform-paths" }
 		]
 	},
+	"include": [
+		"typings/**/*"
+	],
 	"exclude": [
 		"node_modules",
 		".vscode-test"

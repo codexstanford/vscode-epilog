@@ -2,14 +2,14 @@
  * @fileoverview Epilog graph editor, backed by the logic-graph package.
  */
 
+import * as epilog from '@epilog/english-explanation/epilog';
+import * as english from '@epilog/english-explanation/englishExplanation';
+import * as explainStorage from '@epilog/english-explanation/storage';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as Parser from 'web-tree-sitter';
 
-import * as epilog from 'epilog-english/epilog';
-import * as english from 'epilog-english/englishExplanation';
-import * as explainStorage from 'epilog-english/localStorage';
 import * as vscUtil from './vscUtil.js';
 import * as util from '#util';
 import * as ast from '#util/ast';
@@ -36,7 +36,7 @@ export class EpilogGraphEditorProvider implements vscode.CustomTextEditorProvide
                 path.join(
                     this.context.extensionPath,
                     'node_modules',
-                    '@codexstanford',
+                    '@epilog',
                     'tree-sitter-epilog',
                     'tree-sitter-epilog.wasm'));
 
