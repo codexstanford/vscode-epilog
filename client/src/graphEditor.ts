@@ -7,9 +7,9 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as Parser from 'web-tree-sitter';
 
-import * as epilog from '#epilog/epilog';
-import * as english from '#epilog/englishExplanation';
-import * as explainStorage from '#epilog/localStorage';
+import * as epilog from 'epilog-english/epilog';
+import * as english from 'epilog-english/englishExplanation';
+import * as explainStorage from 'epilog-english/localStorage';
 import * as vscUtil from './vscUtil.js';
 import * as util from '#util';
 import * as ast from '#util/ast';

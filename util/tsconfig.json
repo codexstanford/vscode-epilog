@@ -6,8 +6,5 @@
 		"rootDir": "src",
 		"outDir": "out"
 	},
-	"references": [
-		{ "path": "../epilog" }
-	],
-	"include": ["src"]
+	"include": ["src", "../typings/**/*"]
 }

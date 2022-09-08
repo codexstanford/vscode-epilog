@@ -4,7 +4,7 @@
 
 import * as lsp from 'vscode-languageserver/node';
 import Parser from 'web-tree-sitter';
-import * as epilog from '#epilog/epilog';
+import * as epilog from 'epilog-english/epilog';
 
 import * as util from '.';
 

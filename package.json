@@ -1,5 +1,5 @@
 {
-  "name": "@codexstanford/vscode-epilog",
+  "name": "@epilog/vscode-epilog",
   "displayName": "Epilog Language Tools",
   "description": "Tools for writing and working with Epilog programs.",
   "version": "0.1.0",
@@ -69,7 +69,8 @@
   },
   "dependencies": {
     "@codexstanford/logic-graph": "github:codexstanford/LIDE",
-    "@codexstanford/tree-sitter-epilog": "github:codexstanford/tree-sitter-epilog",
+    "@epilog/english-explanation": "github:wohanley/epilog-english-explanation",
+    "@epilog/tree-sitter-epilog": "github:codexstanford/tree-sitter-epilog",
     "web-tree-sitter": "^0.20.5"
   }
 }
