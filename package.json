@@ -69,7 +69,7 @@
   },
   "dependencies": {
     "@codexstanford/logic-graph": "github:codexstanford/LIDE",
-    "@epilog/english-explanation": "github:wohanley/epilog-english-explanation",
+    "@epilog/english-explanation": "github:codexstanford/epilog-english-explanation",
     "@epilog/tree-sitter-epilog": "github:codexstanford/tree-sitter-epilog",
     "web-tree-sitter": "^0.20.5"
   }
