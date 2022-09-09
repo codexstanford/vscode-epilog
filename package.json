@@ -45,6 +45,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
+    "postinstall": "(cd util && npm install); (cd client && npm install); (cd server && npm install)",
     "prepare": "ts-patch install -s",
     "compile": "tsc --build ./util ./client ./server",
     "watch": "tsc --build --watch ./util ./client ./server",
