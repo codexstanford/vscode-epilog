@@ -151,7 +151,7 @@ function diagnoseUnsafeVariables(tree: Parser.Tree): lsp.Diagnostic[] {
             parser.getLanguage().query(`
                 (
                   (variable) @variable
-                  (#match? @variable "${varName}")
+                  (#eq? @variable "${varName}")
                 )
             `).captures(body).forEach(capture => {
                 // If we have an instance of the variable that isn't itself one
