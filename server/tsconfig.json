@@ -6,5 +6,5 @@
 		"outDir": "out"
 	},
 	"references": [{ "path": "../util" }],
-	"include": ["src"]
+	"include": ["src", "../typings/**/*"]
 }

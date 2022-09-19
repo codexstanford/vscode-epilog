@@ -2,6 +2,7 @@
  * @fileoverview Entry point for the LSP server.
  */
 
+import * as epilog from '@epilog/epilog';
 import * as lsp from 'vscode-languageserver/node';
 import * as Parser from 'web-tree-sitter';
 import * as path from 'path';
@@ -48,7 +49,7 @@ connection.onDidOpenTextDocument(e => {
     const ast = parser.parse(e.textDocument.text);
     documents.set(e.textDocument.uri, { text: e.textDocument.text, tree: ast });
 
-    diagnoseDocument(e.textDocument.uri, ast);
+    diagnoseDocument(e.textDocument.uri, e.textDocument.text, ast);
 });
 
 connection.onDidChangeTextDocument((e: lsp.DidChangeTextDocumentParams) => {
@@ -70,24 +71,26 @@ connection.onDidChangeTextDocument((e: lsp.DidChangeTextDocumentParams) => {
         }
     });
 
-    diagnoseDocument(e.textDocument.uri, documents.get(e.textDocument.uri)!.tree);
+    const doc = documents.get(e.textDocument.uri);
+    diagnoseDocument(e.textDocument.uri, doc!.text, doc!.tree);
 });
 
 connection.onDidCloseTextDocument(e => {
     documents.delete(e.textDocument.uri);
 });
 
-async function diagnoseDocument(uri: string, tree: Parser.Tree): Promise<void> {
+async function diagnoseDocument(uri: string, text: string, tree: Parser.Tree): Promise<void> {
     connection.sendDiagnostics({
         uri,
         diagnostics: [
-            diagnoseErrors(tree),
+            diagnoseParseErrors(tree),
+            diagnoseArityErrors(text, tree),
             diagnoseUnsafeVariables(tree)
         ].flat()
     });
 }
 
-function diagnoseErrors(tree: Parser.Tree): lsp.Diagnostic[] {
+function diagnoseParseErrors(tree: Parser.Tree): lsp.Diagnostic[] {
     const diagnostics: lsp.Diagnostic[] = [];
 
     parser.getLanguage().query(`
@@ -104,6 +107,32 @@ function diagnoseErrors(tree: Parser.Tree): lsp.Diagnostic[] {
         });
     });
 
+    return diagnostics;
+}
+
+function diagnoseArityErrors(text: string, tree: Parser.Tree): lsp.Diagnostic[] {
+    const diagnostics: lsp.Diagnostic[] = [];
+    epilog.findarityerrors(epilog.readdata(text)).forEach((arityError: string) => {
+        const predicateName = arityError.substring(13); // trim "Mixed arity: "
+        parser.getLanguage().query(`
+            (
+              (rule
+                head: (literal
+                        predicate: (constant) @predicate))
+              (#eq? @predicate "${predicateName}")
+            )
+        `).captures(tree.rootNode).forEach(cap => {
+            diagnostics.push({
+                message: `Arity mismatch`,
+                source: 'epilog',
+                range: {
+                    start: ast.toLspPosition(cap.node.startPosition),
+                    end: ast.toLspPosition(cap.node.endPosition)
+                },
+                severity: lsp.DiagnosticSeverity.Error
+            });
+        });
+    });
     return diagnostics;
 }
 
