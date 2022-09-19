@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@epilog/epilog": "github:codexstanford/epilogjs",
     "vscode-languageserver": "^8.0.2"
   }
 }

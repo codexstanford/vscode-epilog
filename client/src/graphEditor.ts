@@ -2,7 +2,7 @@
  * @fileoverview Epilog graph editor, backed by the logic-graph package.
  */
 
-import * as epilog from '@epilog/english-explanation/epilog';
+import * as epilog from '@epilog/epilog';
 import * as english from '@epilog/english-explanation/englishExplanation';
 import * as explainStorage from '@epilog/english-explanation/storage';
 import * as fs from 'fs/promises';
